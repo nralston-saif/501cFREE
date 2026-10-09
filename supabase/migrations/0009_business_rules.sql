@@ -487,6 +487,7 @@ create trigger note_attachments_path_guard
 revoke execute on function proposal_votes_in(uuid) from public, anon;
 revoke execute on function proposal_review_progress(uuid[]) from public, anon;
 revoke execute on function reveal_votes_when_complete() from public, anon, authenticated;
+revoke execute on function reveal_votes_after_mode_change() from public, anon, authenticated;
 revoke execute on function guard_proposal_changes() from public, anon, authenticated;
 revoke execute on function guard_pri_funding() from public, anon, authenticated;
 revoke execute on function guard_acknowledged_contribution() from public, anon, authenticated;
