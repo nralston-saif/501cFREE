@@ -79,7 +79,8 @@ $$;
 --
 -- Only a user who proved they own the address is linked: one created by an
 -- admin invite (invited_at is set; the app and scripts/bootstrap-admin.mjs
--- both use inviteUserByEmail) or one whose email is already confirmed.
+-- both use inviteUserByEmail) or one whose email is already confirmed
+-- (scripts/onboard.mjs creates the first admin confirmed, with a password).
 -- An unconfirmed sign-up for a team email is let through but stays
 -- unlinked (no access) until the confirmation trigger below links it, so
 -- knowing a team member's email address isn't enough to claim their seat.

@@ -278,10 +278,16 @@ as $$
 $$;
 
 -- Reviews: the voting body (is_grant_voter) writes, each only their own.
--- Reads are replaced in 0009 (blind until revealed), which also freezes
--- reviews once the votes are revealed.
-create policy "Members read reviews" on proposal_reviews
-  for select using ((select is_team_member()));
+-- Reads are blind: a member sees their own review, and everyone's once the
+-- proposal's votes are revealed (0009 also freezes reviews after that).
+create policy "Members read own or revealed reviews" on proposal_reviews
+  for select using (
+    (select is_team_member())
+    and (
+      reviewer_id = (select current_member_id())
+      or exists (select 1 from grant_proposals p where p.id = proposal_id and p.votes_revealed)
+    )
+  );
 create policy "Reviewers insert own review" on proposal_reviews
   for insert with check ((select is_grant_voter()) and reviewer_id = (select current_member_id()));
 create policy "Reviewers update own review" on proposal_reviews

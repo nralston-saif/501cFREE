@@ -11,7 +11,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:db": "vitest run supabase/tests",
-    "bootstrap-admin": "node --env-file=.env.local scripts/bootstrap-admin.mjs"
+    "onboard": "node scripts/onboard.mjs",
+    "bootstrap-admin": "node scripts/bootstrap-admin.mjs",
+    "db:bundle": "node scripts/bundle-migrations.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.2",

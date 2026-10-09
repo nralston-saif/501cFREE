@@ -15,9 +15,15 @@ export function migrationFiles(): string[] {
     .sort()
 }
 
-export async function createTestDb(): Promise<PGlite> {
+// An embedded Postgres with only the Supabase shim: an "empty project"
+export async function createEmptyDb(): Promise<PGlite> {
   const db = new PGlite({ extensions: { pgcrypto, pg_trgm } })
   await db.exec(readFileSync(path.resolve(__dirname, 'supabase-shim.sql'), 'utf8'))
+  return db
+}
+
+export async function createTestDb(): Promise<PGlite> {
+  const db = await createEmptyDb()
   for (const file of migrationFiles()) {
     try {
       await db.exec(readFileSync(path.join(MIGRATIONS_DIR, file), 'utf8'))

@@ -2,7 +2,7 @@
 
 501(c)(FREE) is a free, open-source back office for small US nonprofits and grantmakers: donations and IRS-compliant acknowledgement letters, expenses by Form 990 functional class, a full grantmaking pipeline, program-related investments, and a lightweight CRM (organizations, people, notes, meetings and tickets). Built with Next.js and Supabase. It's designed to be self-hosted by one organization per installation.
 
-> **Try it in one minute:** `pnpm install && pnpm dev`, then open http://localhost:3000. With no database configured, the app runs in **demo mode** with fictional sample data and no login.
+> **Try it in one minute:** `git clone https://github.com/nralston-saif/501cFREE.git && cd 501cFREE && pnpm install && pnpm dev`, then open http://localhost:3000. With no database configured, the app runs in **demo mode** with fictional sample data and no login.
 
 ## What it does
 
@@ -48,14 +48,18 @@
 
 ## Getting started
 
-See **[docs/setup.md](docs/setup.md)** for the full guide. In short:
+You need [Node.js](https://nodejs.org) 20.11 or newer and [pnpm](https://pnpm.io/installation).
 
-1. Create a Supabase project, apply the SQL in `supabase/migrations/` in filename order, and turn off public sign-ups in Supabase Auth.
-2. Copy `.env.example` to `.env.local` and fill in the required values (Supabase URL, publishable key, secret key, site URL, cron secret).
-3. Start the app with `pnpm install && pnpm dev`, so the invite link has somewhere to land.
-4. In a second terminal, run `pnpm bootstrap-admin you@your-org.org "Your Name"`. Open the emailed link once, while the app is running, and set your password. If the link has expired, run the command again.
-5. Sign in, open **Settings**, and fill in your organization's legal name, EIN, address, mission and program areas. Then invite your team from **Settings → Team**.
-6. Deploy to Vercel or any Node host.
+1. Create a free project at [supabase.com](https://supabase.com).
+2. Get the code:
+   ```bash
+   git clone https://github.com/nralston-saif/501cFREE.git && cd 501cFREE && pnpm install
+   ```
+3. In Supabase, open **SQL Editor**, paste the whole of `supabase/setup.sql`, and click **Run**.
+4. Run `pnpm onboard`. It asks for your Supabase keys, writes `.env.local`, checks your database and sign-in settings, and creates your admin login.
+5. Run `pnpm dev`, open http://localhost:3000 and sign in.
+
+Then open **Settings** to enter your organization's legal name, EIN, address and mission, and invite your team from **Settings → Team**. [docs/setup.md](docs/setup.md) has the details, deploying, optional integrations and troubleshooting.
 
 ## Who can see what
 
@@ -77,6 +81,7 @@ pnpm typecheck
 pnpm lint
 pnpm test         # unit tests + database tests
 pnpm build
+pnpm db:bundle    # regenerate supabase/setup.sql after changing a migration
 ```
 
 `pnpm test` includes `supabase/tests`. Those tests apply every migration to an embedded Postgres (PGlite) and check sign-up restrictions, row-level security, storage policies and the database's business rules, so schema changes are tested without a Supabase project.

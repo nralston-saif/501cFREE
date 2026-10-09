@@ -222,7 +222,7 @@ One block per area: what it does, who can use it, where the code is, and the rul
 | Who | Anyone on the team list |
 | Routes | `app/login/page.tsx`, `app/auth/callback/route.ts`, `app/auth/confirm/page.tsx`, `app/auth/set-password/`, `app/auth/signout/route.ts`, `app/access-denied/page.tsx`, `app/(app)/account/` |
 | Actions | `account.ts`: `changePasswordAction` (checks the current password), `setPasswordAction` (only within an hour of an email-link sign-in) |
-| Other code | `lib/site-url.ts` (`authCallbackUrl`, `safeNextPath`), `scripts/bootstrap-admin.mjs` |
+| Other code | `lib/site-url.ts` (`authCallbackUrl`, `safeNextPath`), `scripts/onboard.mjs` (first admin with a password), `scripts/bootstrap-admin.mjs` (admin by invite email) |
 
 ## Search
 

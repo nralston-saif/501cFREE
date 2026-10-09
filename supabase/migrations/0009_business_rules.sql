@@ -43,18 +43,6 @@ as $$
     and (r.recused or r.vote is not null);
 $$;
 
--- Reviews stay hidden (except your own) until the proposal's votes are
--- revealed
-drop policy "Members read reviews" on proposal_reviews;
-create policy "Members read own or revealed reviews" on proposal_reviews
-  for select using (
-    (select is_team_member())
-    and (
-      reviewer_id = (select current_member_id())
-      or exists (select 1 from grant_proposals p where p.id = proposal_id and p.votes_revealed)
-    )
-  );
-
 -- Reveal automatically when the last voter weighs in. Runs inside the
 -- reviewer's session, so it raises a transaction-local flag that tells
 -- guard_proposal_changes this update is the reveal itself; the guard still

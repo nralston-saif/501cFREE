@@ -26,9 +26,11 @@ pnpm install
 pnpm dev          # http://localhost:3000; demo mode unless .env.local sets NEXT_PUBLIC_USE_SUPABASE=true
 pnpm typecheck    # tsc --noEmit
 pnpm lint         # eslint .
-pnpm test         # vitest: lib/**/*.test.ts + supabase/tests (all migrations on embedded Postgres)
+pnpm test         # vitest: lib/**/*.test.ts + scripts/**/*.test.ts + supabase/tests (all migrations on embedded Postgres)
 pnpm test:db      # only the database suite
 pnpm build        # next build
+pnpm db:bundle    # regenerate supabase/setup.sql from the migrations
+pnpm onboard      # guided first-time setup against a real Supabase project (writes .env.local)
 ```
 
 A change is done when `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build` all pass (CI in `.github/workflows/ci.yml` runs the first three). Schema changes also need types, demo data, policies and a test (see the checklist below).
@@ -92,6 +94,7 @@ A change is done when `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build
 4. Any business rule that must hold for every client goes in a trigger (see `0009_business_rules.sql`); let `auth.uid() is null` (service role) through.
 5. Update `lib/supabase/types/database.ts` and `lib/supabase/demo/store.ts`.
 6. Add a test to `supabase/tests/schema.test.ts` (use `asUser` / `asService` from `supabase/tests/db.ts`).
+7. Run `pnpm db:bundle` to regenerate `supabase/setup.sql` (the one-paste install script). `supabase/tests/setup-sql.test.ts` fails while it's out of date. Never edit `setup.sql` by hand.
 
 **Add a server action**
 1. Put it in the domain's file in `lib/actions/` (`'use server'`).

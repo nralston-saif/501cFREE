@@ -1,28 +1,60 @@
 # Setting up your installation
 
-Allow about 30 minutes for the core setup. Each optional integration adds 5 to 60 minutes; QuickBooks is the longest.
+Allow about 15 minutes for the core setup. Each optional integration adds 5 to 60 minutes; QuickBooks is the longest.
 
-## 1. Supabase
+You need [Node.js](https://nodejs.org) 20.11 or newer and [pnpm](https://pnpm.io/installation).
+
+## 1. Get the code
+
+```bash
+git clone https://github.com/nralston-saif/501cFREE.git
+cd 501cFREE
+pnpm install
+```
+
+Run every command below from this folder.
+
+## 2. Create the database
 
 1. Create a project at [supabase.com](https://supabase.com). A free-tier project is enough for most small organizations.
-2. Apply the migrations in `supabase/migrations/` **in filename order**. Use either method:
-   - **SQL editor:** paste each file and run it.
-   - **Supabase CLI:**
-     ```bash
-     supabase link --project-ref <your-ref>
-     supabase db push
-     ```
-3. **Authentication → Sign In / Providers:**
-   - Keep **Email** enabled.
-   - Turn **off** "Allow new users to sign up". Only people you add to the team can sign in. The database rejects any other email anyway, but turn this off too.
-4. **Authentication → URL Configuration:**
-   - Set **Site URL** to your app's address, e.g. `https://office.example.org` (with your base path if you use one).
-   - Add `https://office.example.org/auth/callback` under **Redirect URLs**, with your base path if any. Add `http://localhost:3000/auth/callback` for local development. Invite and password-reset links only work for addresses on this list.
-5. **Authentication → Emails:** Supabase's built-in email service is heavily rate-limited. For real use, set up custom SMTP, for example with Resend, so invites and password resets arrive reliably.
+2. Open **SQL Editor** in your project, paste the whole of `supabase/setup.sql`, and click **Run**.
 
-## 2. Environment
+`supabase/setup.sql` is every file in `supabase/migrations/`, in filename order, in one script. It's for a new, empty project, and it runs as one transaction: if anything fails, nothing is applied.
 
-Copy `.env.example` to `.env.local` and fill in:
+**Alternatives:**
+- **One file at a time:** paste each file in `supabase/migrations/` into the SQL editor, in filename order. Use this for upgrades: run only the new files.
+- **Supabase CLI:**
+  ```bash
+  supabase link --project-ref <your-ref>
+  supabase db push
+  ```
+
+## 3. Run `pnpm onboard`
+
+```bash
+pnpm onboard
+```
+
+It walks you through the rest and checks each step:
+
+1. **Keys.** Asks for your project URL (the dashboard address from your browser works too), the **publishable** key (`sb_publishable_…`) and the **secret** key (`sb_secret_…`), both under Project Settings → API Keys, and your site URL (default `http://localhost:3000`). It tests each key, generates a `CRON_SECRET`, and writes `.env.local`.
+2. **Database.** Checks that `supabase/setup.sql` has been run, and links you to the SQL editor if not.
+3. **Sign-in settings.** Checks that public sign-ups are off (Authentication → Sign In / Providers → "Allow new users to sign up"), and shows what to enter under Authentication → URL Configuration: **Site URL** = your site URL, and `<site URL>/auth/callback` under **Redirect URLs**. Password-reset and invite links only work for addresses on that list.
+4. **Your admin login.** Asks for your name, email and a password, adds you to the team as an admin and creates your login. No email is sent.
+
+Then start the app and sign in:
+
+```bash
+pnpm dev
+```
+
+Run `pnpm onboard` again whenever you like: press Enter to keep each current value. It's also how to reset your own password if you're locked out.
+
+**Before you invite your team:** Supabase's built-in email service is heavily rate-limited. Set up custom SMTP under **Authentication → Emails**, for example with Resend, so invites and password resets arrive reliably.
+
+### Environment variables
+
+`pnpm onboard` writes these to `.env.local`. To set them by hand instead, copy `.env.example` to `.env.local` and fill in:
 
 | Variable | Where to find it |
 |---|---|
@@ -34,22 +66,13 @@ Copy `.env.example` to `.env.local` and fill in:
 
 Every other variable is optional; `.env.example` explains each one. `NEXT_PUBLIC_*` values are built into the app, so rebuild after changing them. Leaving `NEXT_PUBLIC_USE_SUPABASE` unset runs demo mode: fictional sample data, no login, nothing saved permanently.
 
-## 3. First admin
+### Alternative: an invite email instead of a password
 
-Start the app first, so the invite link has somewhere to land:
-
-```bash
-pnpm install
-pnpm dev
-```
-
-Then, in a second terminal:
+`pnpm bootstrap-admin` adds an admin and emails them an invite link instead of setting a password. It reads `.env.local`, so set that up first (by hand or with `pnpm onboard`). Start the app, so the link has somewhere to land, then in a second terminal:
 
 ```bash
 pnpm bootstrap-admin you@your-org.org "Your Name"
 ```
-
-This adds you to the team as an admin and emails an invite. The invite link signs you in and asks you to set a password. You can add everyone else afterwards from **Settings → Team**.
 
 Email links work **only once**. If a link says it is invalid or expired (for example, it was opened while the app wasn't running), run the same command again: for someone who already has a login it sends a fresh password-setup link instead. The **Forgot password?** link on the sign-in page does the same.
 
@@ -57,8 +80,9 @@ Email links work **only once**. If a link says it is invalid or expired (for exa
 
 **Vercel** (recommended):
 1. Import the repository.
-2. Add the same environment variables.
-3. Deploy. `vercel.json` schedules the two background jobs: daily stock prices and the 30-minute QuickBooks pull.
+2. Add the same environment variables, with `NEXT_PUBLIC_SITE_URL` set to your production address.
+3. In Supabase, Authentication → URL Configuration: set **Site URL** to the production address and add `<production address>/auth/callback` under **Redirect URLs**.
+4. Deploy. `vercel.json` schedules the two background jobs: daily stock prices and the 30-minute QuickBooks pull.
 
 **Other hosts:**
 1. Build and start the app:
@@ -136,6 +160,18 @@ Your public website can send submissions straight into the app. Each endpoint ta
 ```
 
 Both endpoints return `201 {"ok": true}` on success, `400` for a body that isn't JSON, `401` for a wrong or unset secret, and `422 {"error": "..."}` for invalid input. Required fields: `name` and `email` for inquiries; `applicant_name`, `applicant_email` and `title` for proposals. `program_areas` takes the slugs from Settings → Program areas; unknown or inactive slugs are dropped. Proposal submissions appear in the grant pipeline as *Received*, with no contact linked until a team member links one. Inquiries appear under **Donations → Inquiries**.
+
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `No .env.local found` | Run `pnpm onboard` from the project folder. It creates the file. |
+| "Supabase rejected the publishable key" or "secret key" | Copy the key again from Project Settings → API Keys. The publishable key starts with `sb_publishable_`, the secret key with `sb_secret_`; check both are from the same project as the URL. Then run `pnpm onboard` again. |
+| `Email … is not on the team for this workspace` (or Supabase says "Database error creating new user") | Only emails in the team list can have a login. Add the person from **Settings → Team** (or run `pnpm onboard` for yourself) instead of creating users in the Supabase dashboard. |
+| A sign-in, invite or reset link says it is invalid or expired | Email links work once and expire. Request a new one with **Forgot password?** on the sign-in page, or ask an admin to re-send the invite. Make sure `<site URL>/auth/callback` is under Authentication → URL Configuration → Redirect URLs, and open the link while the app is running. As the first admin, `pnpm onboard` sets a new password without any email. |
+| `pnpm onboard` says sign-ups are still on | Authentication → Sign In / Providers: turn off "Allow new users to sign up" and click **Save**. It can take a few seconds to apply. |
+| The app shows the demo data and no login | `NEXT_PUBLIC_USE_SUPABASE` isn't `true` in `.env.local` (or your host's environment). Set it and restart `pnpm dev`; on a host, rebuild, since `NEXT_PUBLIC_*` values are built in. |
+| `pnpm onboard` says the database is missing or only partly set up | Paste the whole of `supabase/setup.sql` into the SQL editor and run it. On a project that already has some of the tables, run the missing files from `supabase/migrations/` instead. |
 
 ## Backups
 

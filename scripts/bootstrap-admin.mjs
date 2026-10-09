@@ -1,7 +1,11 @@
 #!/usr/bin/env node
-// Adds the first admin to a fresh installation and emails them an invite.
+// Adds an admin to the team and emails them an invite link.
 //
 //   pnpm bootstrap-admin you@your-org.org "Your Name"
+//
+// For a brand-new installation, `pnpm onboard` is easier: it creates your
+// login with a password, so no email link is involved. Use this script when
+// you want an invite email instead, or to restore admin access for someone.
 //
 // Reads NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY from
 // .env.local. Safe to re-run: an existing team member is promoted to admin
@@ -9,20 +13,47 @@
 // already have one get a fresh password-setup link.
 // After the first admin signs in, add everyone else from Settings → Team.
 
+import { existsSync, readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
+import { escapeLike, isPlaceholder, isValidEmail, parseEnv } from './lib/setup-helpers.mjs'
+
+const USAGE = 'Usage: pnpm bootstrap-admin <email> "<full name>"\n  e.g. pnpm bootstrap-admin you@your-org.org "Your Name"'
 
 const [email, ...nameParts] = process.argv.slice(2)
 const fullName = nameParts.join(' ').trim()
 
-if (!email || !email.includes('@') || !fullName) {
-  console.error('Usage: pnpm bootstrap-admin <email> "<full name>"')
+if (!email) {
+  console.error(USAGE)
   process.exit(1)
+}
+if (!isValidEmail(email)) {
+  console.error(`"${email}" isn't an email address. The email comes first, then the name in quotes.`)
+  console.error(USAGE)
+  process.exit(1)
+}
+if (!fullName) {
+  console.error(`Add the person's full name after the email.`)
+  console.error(USAGE)
+  process.exit(1)
+}
+
+// Load .env.local without overriding variables already set in the shell
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const envPath = path.join(root, '.env.local')
+if (!existsSync(envPath)) {
+  console.error('No .env.local found. Run `pnpm onboard` first: it walks you through the Supabase keys.')
+  process.exit(1)
+}
+for (const [key, value] of Object.entries(parseEnv(readFileSync(envPath, 'utf8')))) {
+  if (process.env[key] === undefined) process.env[key] = value
 }
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceKey = process.env.SUPABASE_SECRET_KEY
-if (!url || !serviceKey) {
-  console.error('Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY in .env.local first.')
+if (isPlaceholder(url) || isPlaceholder(serviceKey)) {
+  console.error('Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY in .env.local first (`pnpm onboard` does it for you).')
   process.exit(1)
 }
 
@@ -35,9 +66,9 @@ const normalized = email.trim().toLowerCase()
 const { data: existing, error: findError } = await supabase
   .from('team_members')
   .select('id, auth_user_id')
-  .ilike('email', normalized)
+  .ilike('email', escapeLike(normalized))
   .maybeSingle()
-if (findError) fail('Could not read team_members (have the migrations been applied?)', findError)
+if (findError) fail('Could not read team_members (has supabase/setup.sql been run in the SQL editor?)', findError)
 
 let authUserId = existing?.auth_user_id ?? null
 if (existing) {

@@ -44,8 +44,13 @@ lib/
                           domain logic, mostly pure and unit-tested
   ai/                     model ids, organization context for prompts
   utils/                  money, dates, fiscal year, tax-status labels
-scripts/bootstrap-admin.mjs  adds the first admin and emails an invite
+scripts/
+  onboard.mjs             `pnpm onboard`: guided setup (writes .env.local, checks keys and auth settings, creates the first admin)
+  bootstrap-admin.mjs     `pnpm bootstrap-admin`: adds an admin and emails an invite
+  bundle-migrations.mjs   `pnpm db:bundle`: regenerates supabase/setup.sql
+  lib/setup-helpers.mjs   their pure helpers (unit-tested)
 supabase/migrations/      the schema (the source of truth)
+supabase/setup.sql        every migration in one file, for a single paste into the SQL editor (generated)
 supabase/tests/           PGlite database tests
 ```
 
@@ -272,8 +277,9 @@ Cron routes (`app/api/cron/*`) check `Authorization: Bearer $CRON_SECRET` with `
 
 ## Testing
 
-- `pnpm test` runs Vitest over `lib/**/*.test.ts` (pure domain logic, letter wording, CSV, matching, sanitizing, the action guard) and `supabase/tests/**/*.test.ts`.
+- `pnpm test` runs Vitest over `lib/**/*.test.ts` (pure domain logic, letter wording, CSV, matching, sanitizing, the action guard), `scripts/**/*.test.ts` (the setup scripts' helpers) and `supabase/tests/**/*.test.ts`.
 - The database suite (`supabase/tests/db.ts`) boots PGlite (Postgres in WebAssembly) with `pgcrypto` and `pg_trgm`, applies `supabase/tests/supabase-shim.sql` (stand-ins for Supabase's `auth` and `storage` schemas and roles), then every migration in filename order. `asUser(db, userId)` and `asService(db)` switch between a signed-in session and the service role.
+- `supabase/tests/setup-sql.test.ts` fails when `supabase/setup.sql` is stale (fix: `pnpm db:bundle`) and checks that applying it in one batch builds the same tables, columns, policies, functions, triggers, indexes and seed data as applying each migration.
 - `supabase/tests/schema.test.ts` covers the sign-up gate, RLS, storage policies, contacts, domain triggers, every rule in the table above, the summary functions, and that policies wrap their helper calls.
 - `lib/supabase/fetch-all.test.ts` checks paging past a capped response (also against the demo client); `lib/supabase/demo/mock-client.test.ts` checks hinted embeds and paged `rpc()`.
 
