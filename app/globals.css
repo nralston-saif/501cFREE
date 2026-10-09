@@ -1,0 +1,346 @@
+@import "tailwindcss";
+
+/* Theme colors: neutral grays with a green accent. Change --accent to rebrand. */
+:root {
+  --background: #ffffff;
+  --background-secondary: #f5f5f5;
+
+  --foreground: #1a1a1a;
+  --text-secondary: #4a4a4a;
+  --text-muted: #666666;
+
+  --primary: #1a1a1a;
+  --primary-hover: #000000;
+  --accent: #15803d;
+
+  --success: #16a34a;
+  --success-light: #dcfce7;
+  --warning: #ca8a04;
+  --warning-light: #fef9c3;
+  --danger: #dc2626;
+  --danger-light: #fee2e2;
+
+  color-scheme: light;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background-secondary);
+  font-family: var(--font-montserrat), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Shared form styles */
+.input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  background: white;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgb(26 26 26 / 0.1);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.15s, color 0.15s, opacity 0.15s;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.btn-secondary {
+  background: white;
+  color: var(--foreground);
+  border: 1px solid #e5e7eb;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #f9fafb;
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: white;
+}
+
+.card {
+  background: white;
+  border-radius: 0.75rem;
+  border: 1px solid #f3f4f6;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+}
+
+/* DOCX preview styling (mammoth.convertToHtml output) */
+.docx-preview h1, .docx-preview h2, .docx-preview h3, .docx-preview h4 {
+  font-weight: 600;
+  margin: 1em 0 0.4em;
+}
+.docx-preview h1 { font-size: 1.25rem; }
+.docx-preview h2 { font-size: 1.1rem; }
+.docx-preview h3 { font-size: 1rem; }
+.docx-preview p { margin: 0.5em 0; }
+.docx-preview ul, .docx-preview ol { margin: 0.5em 0; padding-left: 1.5em; }
+.docx-preview li { margin: 0.25em 0; }
+.docx-preview table { border-collapse: collapse; margin: 0.5em 0; }
+.docx-preview td, .docx-preview th { border: 1px solid #e5e7eb; padding: 0.4em 0.6em; }
+.docx-preview strong { font-weight: 600; }
+
+/* Toast slide-in animation */
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.2s ease-out;
+}
+
+/* ==== Meeting notes editor (copied from apps/crm/app/globals.css — keep in sync) ==== */
+/* Saved note content - mirrors ProseMirror editor styles for consistent display */
+.note-content ul {
+  list-style-type: disc !important;
+  padding-left: 1.5rem !important;
+  margin: 0.5rem 0 !important;
+}
+
+.note-content ol {
+  list-style-type: decimal !important;
+  padding-left: 1.5rem !important;
+  margin: 0.5rem 0 !important;
+}
+
+.note-content ul ul {
+  list-style-type: circle !important;
+}
+
+.note-content ul ul ul {
+  list-style-type: square !important;
+}
+
+.note-content ol ol {
+  list-style-type: lower-alpha !important;
+}
+
+.note-content ol ol ol {
+  list-style-type: lower-roman !important;
+}
+
+.note-content li {
+  margin: 0.25rem 0 !important;
+  display: list-item !important;
+}
+
+.note-content li p {
+  margin: 0 !important;
+}
+
+.note-content li p + p {
+  margin-top: 0.5em !important;
+}
+
+.note-content blockquote {
+  border-left: 3px solid #d1d5db;
+  padding-left: 1rem;
+  margin: 0.5rem 0;
+  color: #4b5563;
+}
+
+.note-content pre {
+  background-color: #f3f4f6;
+  border-radius: 0.375rem;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+}
+
+.note-content code {
+  background-color: #f3f4f6;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+}
+
+.note-content h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+}
+
+.note-content p {
+  margin: 0.75em 0 !important;
+}
+
+.note-content p:first-child {
+  margin-top: 0 !important;
+}
+
+.note-content p:last-child {
+  margin-bottom: 0 !important;
+}
+
+.note-content a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.note-content a:hover {
+  color: #1e40af;
+}
+
+/* Tiptap Editor Styles */
+.ProseMirror {
+  min-height: 200px;
+  padding: 12px;
+}
+
+.ProseMirror:focus {
+  outline: none;
+}
+
+/* List styling for Tiptap editor - !important needed to override Tailwind preflight reset */
+.ProseMirror ul {
+  list-style-type: disc !important;
+  padding-left: 1.5rem !important;
+  margin: 0.5rem 0 !important;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal !important;
+  padding-left: 1.5rem !important;
+  margin: 0.5rem 0 !important;
+}
+
+.ProseMirror ul ul {
+  list-style-type: circle !important;
+}
+
+.ProseMirror ul ul ul {
+  list-style-type: square !important;
+}
+
+.ProseMirror ol ol {
+  list-style-type: lower-alpha !important;
+}
+
+.ProseMirror ol ol ol {
+  list-style-type: lower-roman !important;
+}
+
+.ProseMirror li {
+  margin: 0.25rem 0 !important;
+  display: list-item !important;
+}
+
+.ProseMirror p {
+  margin: 0.75em 0 !important;
+}
+
+.ProseMirror li p {
+  margin: 0 !important;
+}
+
+/* Blockquote styling */
+.ProseMirror blockquote {
+  border-left: 3px solid #d1d5db;
+  padding-left: 1rem;
+  margin: 0.5rem 0;
+  color: #4b5563;
+}
+
+/* Code block styling */
+.ProseMirror pre {
+  background-color: #f3f4f6;
+  border-radius: 0.375rem;
+  padding: 0.75rem 1rem;
+  overflow-x: auto;
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+}
+
+.ProseMirror code {
+  background-color: #f3f4f6;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+}
+
+/* Heading styling */
+.ProseMirror h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Liveblocks Tiptap Collaboration Cursors - Override defaults */
+/* Caret line - the vertical cursor indicator */
+.collaboration-carets__caret,
+.collaboration-cursor__caret {
+  border-inline-width: 2px !important;
+  border-color: currentColor !important;
+}
+
+/* Name label - the floating name tag above cursor (shows first initial only) */
+.collaboration-carets__label,
+.collaboration-cursor__label {
+  /* Semi-transparent background */
+  background: rgba(99, 102, 241, 0.6) !important;
+  /* Compact appearance for single initial */
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  border-end-start-radius: 2px !important;
+  /* Subtle shadow */
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1) !important;
+  /* Semi-transparent */
+  opacity: 0.7;
+  /* Smooth transitions */
+  transition: opacity 0.15s ease;
+  /* Keep it above content */
+  z-index: 50;
+}
+
