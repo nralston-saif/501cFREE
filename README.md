@@ -1,6 +1,10 @@
 # 501(c)(FREE)
 
-501(c)(FREE) is a free, open-source back office for small US nonprofits and grantmakers: donations and IRS-compliant acknowledgement letters, expenses by Form 990 functional class, a full grantmaking pipeline, program-related investments, and a lightweight CRM (organizations, people, notes, meetings and tickets). Built with Next.js and Supabase. It's designed to be self-hosted by one organization per installation.
+501(c)(FREE) is a free, open-source back office for small US nonprofits and grantmakers: donations and acknowledgement letters, expenses by Form 990 functional class, a full grantmaking pipeline, program-related investments, and a lightweight CRM (organizations, people, notes, meetings and tickets). Built with Next.js and Supabase. It's designed to be self-hosted by one organization per installation.
+
+Built by [SAIF](https://saif.vc) for its nonprofit, SAIFbio, and open-sourced so other organizations can use it.
+
+> **Status: early release (October 2026).** It's adapted from the system SAIFbio uses day to day, but expect rough edges. Bug reports, setup problems and ideas are welcome in [GitHub Issues](https://github.com/nralston-saif/501cFREE/issues).
 
 > **Try it in one minute:** `git clone https://github.com/nralston-saif/501cFREE.git && cd 501cFREE && pnpm install && pnpm dev`, then open http://localhost:3000. With no database configured, the app runs in **demo mode** with fictional sample data and no login.
 
@@ -8,7 +12,7 @@
 
 **Fundraising**
 - Record contributions: cash, check, wire, card, stock, crypto and in-kind. Each can carry donor restrictions, a quid-pro-quo disclosure, and a gift vehicle (donor-advised fund, IRA qualified charitable distribution, employer match and more).
-- Generate and email **acknowledgement letters that meet IRS Pub 1771**. They include the no-goods-or-services statement, quid-pro-quo estimates and in-kind descriptions without valuation. A frozen snapshot of each sent letter is kept, and a gift can't be edited once its letter is sent.
+- Generate and email **acknowledgement letters built around IRS Pub 1771 requirements**. They include the no-goods-or-services statement, quid-pro-quo estimates and in-kind descriptions without valuation. A frozen snapshot of each sent letter is kept, and a gift can't be edited once its letter is sent.
 - Track stock gifts: security, shares, fair-market value and sale proceeds, with optional daily market prices.
 - Receive donation inquiries from your website's donate form.
 

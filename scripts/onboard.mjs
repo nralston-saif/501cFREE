@@ -608,6 +608,7 @@ say()
 say(bold(green(`Done. Run \`pnpm dev\`, open ${appUrl}, sign in as ${email}.`)))
 say('Next: Settings → Organization (legal name, EIN, address, mission). Invite everyone else')
 say('from Settings → Team; they get an email link to choose their own password.')
+say(dim("Don't add people with Supabase's own Invite user button: logins only work for people on the team list."))
 if (!/^http:\/\/localhost/.test(siteUrl)) {
   say(dim('Deploying? Add the same values from .env.local to your host. See docs/setup.md.'))
 }

@@ -161,13 +161,15 @@ Your public website can send submissions straight into the app. Each endpoint ta
 
 Both endpoints return `201 {"ok": true}` on success, `400` for a body that isn't JSON, `401` for a wrong or unset secret, and `422 {"error": "..."}` for invalid input. Required fields: `name` and `email` for inquiries; `applicant_name`, `applicant_email` and `title` for proposals. `program_areas` takes the slugs from Settings → Program areas; unknown or inactive slugs are dropped. Proposal submissions appear in the grant pipeline as *Received*, with no contact linked until a team member links one. Inquiries appear under **Donations → Inquiries**.
 
+> **Add people from the app, not from Supabase.** Don't use Supabase's own *Invite user* or *Add user* buttons (Authentication → Users): the database only allows logins for people on the team list, so those fail with "Email … is not on the team". `pnpm onboard` creates your own admin login; invite everyone else from **Settings → Team** in the app.
+
 ## Troubleshooting
 
 | Problem | Fix |
 |---|---|
 | `No .env.local found` | Run `pnpm onboard` from the project folder. It creates the file. |
 | "Supabase rejected the publishable key" or "secret key" | Copy the key again from Project Settings → API Keys. The publishable key starts with `sb_publishable_`, the secret key with `sb_secret_`; check both are from the same project as the URL. Then run `pnpm onboard` again. |
-| `Email … is not on the team for this workspace` (or Supabase says "Database error creating new user") | Only emails in the team list can have a login. Add the person from **Settings → Team** (or run `pnpm onboard` for yourself) instead of creating users in the Supabase dashboard. |
+| `Email … is not on the team` (or Supabase says "Database error creating new user") | Only emails in the team list can have a login. Add the person from **Settings → Team** (or run `pnpm onboard` for yourself) instead of creating users in the Supabase dashboard. |
 | A sign-in, invite or reset link says it is invalid or expired | Email links work once and expire. Request a new one with **Forgot password?** on the sign-in page, or ask an admin to re-send the invite. Make sure `<site URL>/auth/callback` is under Authentication → URL Configuration → Redirect URLs, and open the link while the app is running. As the first admin, `pnpm onboard` sets a new password without any email. |
 | `pnpm onboard` says sign-ups are still on | Authentication → Sign In / Providers: turn off "Allow new users to sign up" and click **Save**. It can take a few seconds to apply. |
 | The app shows the demo data and no login | `NEXT_PUBLIC_USE_SUPABASE` isn't `true` in `.env.local` (or your host's environment). Set it and restart `pnpm dev`; on a host, rebuild, since `NEXT_PUBLIC_*` values are built in. |

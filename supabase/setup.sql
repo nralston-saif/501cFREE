@@ -112,7 +112,7 @@ begin
     where lower(email) = lower(new.email)
       and (auth_user_id is null or auth_user_id = new.id)
   ) then
-    raise exception 'Email % is not on the team for this workspace', new.email;
+    raise exception 'Email % is not on the team. Add people from Settings -> Team in the app, not from the Supabase dashboard.', new.email;
   end if;
 
   if new.invited_at is not null or new.email_confirmed_at is not null then
