@@ -6,6 +6,8 @@ Built by [SAIF](https://saif.vc) for its nonprofit, SAIFbio, and open-sourced so
 
 > **Status: early release (October 2026).** It's adapted from the system SAIFbio uses day to day, but expect rough edges. Bug reports, setup problems and ideas are welcome in [GitHub Issues](https://github.com/nralston-saif/501cFREE/issues).
 
+> **Live demo:** [501cfree-demo.vercel.app](https://501cfree-demo.vercel.app). A public sandbox with fictional data and sample AI results; nothing you enter is kept.
+
 > **Try it in one minute:** `git clone https://github.com/nralston-saif/501cFREE.git && cd 501cFREE && pnpm install && pnpm dev`, then open http://localhost:3000. With no database configured, the app runs in **demo mode**: fictional sample data, no login, and pre-written sample results for the AI features, so it also works as a public sandbox (data resets every few hours).
 
 ## What it does
