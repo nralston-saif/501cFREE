@@ -69,7 +69,7 @@ A change is done when `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build
 
 **Types and demo data are hand-maintained.** `lib/supabase/types/database.ts` mirrors the migrations (no generator). `lib/supabase/demo/store.ts` is the demo dataset. Update both with every schema change.
 
-**Migrations.** The project is unreleased. Until the first public release, the baseline migrations `supabase/migrations/0001_core.sql` through `0091_default_data.sql` may be edited in place (that keeps a fresh install to one clean baseline). After the first public release, never edit a shipped migration: add a new numbered file instead. Indexes go with their table; add one for any new hot filter + sort pair (e.g. `(status, txn_date desc)`).
+**Migrations.** The project is released (v0.1.0): organizations run it, so **never edit a migration that has shipped**. Edits to an old file never reach existing installations. Add a new file instead, numbered from `0100` up (`0100_short_name.sql`, `0101_…`) so it sorts after the baseline `0001`–`0091` for fresh and existing installs alike. `0090_triggers.sql` only covered the tables that existed then, so a migration that adds a table must also create that table's `set_updated_at` and `audit_write` triggers itself. List every new migration under its release in `CHANGELOG.md`. Indexes go with their table; add one for any new hot filter + sort pair (e.g. `(status, txn_date desc)`).
 
 ## Gotchas
 

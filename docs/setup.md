@@ -163,6 +163,12 @@ Both endpoints return `201 {"ok": true}` on success, `400` for a body that isn't
 
 > **Add people from the app, not from Supabase.** Don't use Supabase's own *Invite user* or *Add user* buttons (Authentication → Users): the database only allows logins for people on the team list, so those fail with "Email … is not on the team". `pnpm onboard` creates your own admin login; invite everyone else from **Settings → Team** in the app.
 
+## Upgrading
+
+1. `git pull` (or merge the new release into your fork) and `pnpm install`.
+2. Check [CHANGELOG.md](../CHANGELOG.md) for new database migrations since your version, and apply each new file in `supabase/migrations/` in filename order: paste it into the SQL editor and run it, or use `supabase db push` if you set up with the CLI. Don't re-run `supabase/setup.sql` on an existing database; it is for fresh installs only.
+3. Redeploy (or restart `pnpm dev`).
+
 ## Troubleshooting
 
 | Problem | Fix |

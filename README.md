@@ -104,6 +104,8 @@ Using a coding agent? Point it at [AGENTS.md](AGENTS.md) first.
 | [docs/README.md](docs/README.md) | Index of the docs folder |
 | [docs/quickbooks.md](docs/quickbooks.md) | The optional QuickBooks Online integration |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute |
+| [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) | How we treat each other |
+| [CHANGELOG.md](CHANGELOG.md) | Releases and the database migrations each one adds |
 | [SECURITY.md](SECURITY.md) | Reporting vulnerabilities; running an installation safely |
 
 ## Important notes

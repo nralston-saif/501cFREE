@@ -1,5 +1,8 @@
 name: CI
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main]
@@ -21,3 +24,5 @@ jobs:
       # Unit tests plus the database suite (applies every migration to an
       # embedded Postgres and checks row-level security)
       - run: pnpm test
+      # Production build (demo mode: no secrets needed)
+      - run: pnpm build
