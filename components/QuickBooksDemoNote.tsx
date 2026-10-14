@@ -30,7 +30,7 @@ export default function QuickBooksDemoNote({
             for cash transactions.
           </li>
           <li>
-            Every 30 minutes (or on <em>Sync now</em>) the app pulls new and changed QuickBooks
+            On a schedule (daily by default, up to every 30 minutes on paid hosting) or on <em>Sync now</em>, the app pulls new and changed QuickBooks
             transactions into Banking for review, each with a suggested match: an open invoice, an
             existing expense, a scheduled grant disbursement, a PRI, or a new expense or
             contribution.

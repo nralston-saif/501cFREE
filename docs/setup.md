@@ -82,7 +82,7 @@ Email links work **only once**. If a link says it is invalid or expired (for exa
 1. Import the repository.
 2. Add the same environment variables, with `NEXT_PUBLIC_SITE_URL` set to your production address.
 3. In Supabase, Authentication → URL Configuration: set **Site URL** to the production address and add `<production address>/auth/callback` under **Redirect URLs**.
-4. Deploy. `vercel.json` schedules the two background jobs: daily stock prices and the 30-minute QuickBooks pull.
+4. Deploy. `vercel.json` schedules the two background jobs: daily stock prices and a daily QuickBooks pull. Vercel's free Hobby plan only allows daily jobs; on a paid plan you can make the QuickBooks pull more frequent by changing its schedule in `vercel.json` to `*/30 * * * *` (every 30 minutes). Either way, **Sync now** on the Banking page pulls immediately.
 
 **Other hosts:**
 1. Build and start the app:
@@ -92,7 +92,7 @@ Email links work **only once**. If a link says it is invalid or expired (for exa
    ```
 2. Schedule these calls with `Authorization: Bearer $CRON_SECRET`:
    - `GET /api/cron/stock-prices` daily
-   - `GET /api/cron/qbo-pull` every 30 minutes
+   - `GET /api/cron/qbo-pull` daily, or as often as every 30 minutes
 
 **Serving under a sub-path** (e.g. `https://example.org/office`): set `NEXT_PUBLIC_BASE_PATH=/office` before building. Add the prefix to the cron paths in `vercel.json` and to every redirect URL above.
 

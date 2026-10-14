@@ -3,6 +3,7 @@
 Notable changes to 501(c)(FREE). Each release lists any new database migrations: run them in order on an existing installation (see [docs/setup.md](docs/setup.md#upgrading)).
 
 ## Unreleased
+- The QuickBooks pull now runs daily by default, so the app deploys on Vercel's free Hobby plan (which only allows daily jobs). On a paid plan, set its schedule in `vercel.json` to `*/30 * * * *`; **Sync now** pulls immediately either way.
 - Demo mode works as a public sandbox: AI features return labelled sample output without an API key, the notes inbox works in demo, QuickBooks shows how the integration works instead of connecting, Banking has sample items to review, and demo data resets every 6 hours.
 
 - Removed the activity log (Settings → Activity). The app no longer records team members' sign-ins, sign-outs or record changes; the `audit_log` table, its triggers and its trigger functions are dropped, along with any events already recorded.

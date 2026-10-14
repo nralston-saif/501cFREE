@@ -251,4 +251,4 @@ Scheduled in `vercel.json`; each checks `Authorization: Bearer $CRON_SECRET` (`l
 | Job | Schedule | Does |
 |---|---|---|
 | `GET /api/cron/stock-prices` (`app/api/cron/stock-prices/route.ts`) | daily, 03:00 UTC | Refreshes the latest price for each ticker still held (unsold stock gifts) into `security_prices`. Needs `FMP_API_KEY`. |
-| `GET /api/cron/qbo-pull` (`app/api/cron/qbo-pull/route.ts`) | every 30 minutes | Pulls changed QuickBooks transactions into `qbo_inbox` (`lib/quickbooks/pull.ts`), refreshing the OAuth token as it goes. Skips (and so doesn't refresh the token) until QuickBooks is connected and the pull is turned on. |
+| `GET /api/cron/qbo-pull` (`app/api/cron/qbo-pull/route.ts`) | daily (up to every 30 minutes on paid hosting) | Pulls changed QuickBooks transactions into `qbo_inbox` (`lib/quickbooks/pull.ts`), refreshing the OAuth token as it goes. Skips (and so doesn't refresh the token) until QuickBooks is connected and the pull is turned on. |

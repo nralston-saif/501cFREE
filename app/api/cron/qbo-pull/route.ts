@@ -9,7 +9,7 @@ export const maxDuration = 120
 
 /**
  * QBO pull sync: lands bank transactions accepted in QuickBooks into the
- * review inbox (/banking). Runs every 30 minutes, which also keeps the
+ * review inbox (/banking). Runs daily by default (Vercel Hobby only allows daily jobs; paid plans can run it every 30 minutes), which also keeps the
  * OAuth refresh token rotating so the connection can no longer expire from
  * inactivity. Protected by CRON_SECRET; Vercel Cron supplies the bearer token.
  */

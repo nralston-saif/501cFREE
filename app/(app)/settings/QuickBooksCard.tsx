@@ -271,7 +271,7 @@ export default async function QuickBooksCard() {
             Pull from QuickBooks (bank feed)
           </h3>
           <p className="text-xs text-gray-400 mb-3">
-            Every 30 minutes, transactions accepted in QuickBooks land in{' '}
+            On each scheduled sync (daily by default) or when you click Sync now, transactions accepted in QuickBooks land in{' '}
             <Link href="/banking" className="underline">
               Banking
             </Link>{' '}

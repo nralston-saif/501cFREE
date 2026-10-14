@@ -7,7 +7,7 @@
     },
     {
       "path": "/api/cron/qbo-pull",
-      "schedule": "*/30 * * * *"
+      "schedule": "30 4 * * *"
     }
   ]
 }

@@ -6,7 +6,7 @@ Optional. When it's configured, QuickBooks Online (QBO) stays your book of recor
 
 **Bank feeds are the source of cash transactions.** The app never creates a QuickBooks transaction on its own, because doing so would duplicate the one the bank feed brings in. (It does create QuickBooks **Vendors** when it fills in a payee it can't find by id or name.) Instead, sync runs in two directions, and each transaction has exactly one owner:
 
-- **Pull (QuickBooks → app).** Every 30 minutes, and whenever someone clicks *Sync now*, the app reads transactions that changed in QuickBooks (purchases, deposits, transfers, journal entries). It lands each one at **Banking** for review, with a suggestion (`lib/quickbooks/match.ts`):
+- **Pull (QuickBooks → app).** On a schedule (daily by default; every 30 minutes if your host allows it, see below), and whenever someone clicks *Sync now*, the app reads transactions that changed in QuickBooks (purchases, deposits, transfers, journal entries). It lands each one at **Banking** for review, with a suggestion (`lib/quickbooks/match.ts`):
   - **Pay an open invoice.** Exact amount, paid between 7 days before and 180 days after the invoice date. The match is confident only when exactly one candidate's vendor matches.
   - **Link to an existing expense** (exact amount, within 3 days, same vendor or neither has one), so the same payment isn't recorded twice.
   - **Pay a scheduled grant disbursement** (exact amount). This is the *only* match that can be applied automatically. That requires the auto-apply setting to be on, the transaction to be a QuickBooks Purchase, the payee to be verified (same QuickBooks vendor id, or the same name after normalizing), exactly one verified candidate, and a signed grant agreement. Auto-applied items are not filled in afterwards (see Push).
@@ -53,10 +53,10 @@ QBO_CLIENT_ID=...
 QBO_CLIENT_SECRET=...
 QBO_ENVIRONMENT=production          # or sandbox
 # QBO_REDIRECT_URI=...              # only if it differs from <site>/<base>/api/quickbooks/callback
-CRON_SECRET=...                     # protects the 30-minute pull job
+CRON_SECRET=...                     # protects the scheduled pull job
 ```
 
-The pull job is scheduled in `vercel.json` (prefix the path with your base path if you set one). On other hosts, call `GET /api/cron/qbo-pull` every 30 minutes with `Authorization: Bearer $CRON_SECRET`. While the pull is turned on, each run also refreshes the OAuth tokens, so the connection doesn't expire from inactivity. With the pull off, the job does nothing, and an unused connection eventually expires (reconnect in Settings).
+The pull job is scheduled in `vercel.json` (prefix the path with your base path if you set one). It runs daily by default because Vercel's free Hobby plan only allows daily jobs; on a paid plan, change its schedule to `*/30 * * * *` for a pull every 30 minutes. On other hosts, call `GET /api/cron/qbo-pull` daily (or up to every 30 minutes) with `Authorization: Bearer $CRON_SECRET`. While the pull is turned on, each run also refreshes the OAuth tokens, so the connection doesn't expire from inactivity. With the pull off, the job does nothing, and an unused connection eventually expires (reconnect in Settings).
 
 ### 4. Connect and map (Settings → QuickBooks, admins only)
 
