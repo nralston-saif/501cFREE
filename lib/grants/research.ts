@@ -6,6 +6,8 @@ import {
   type MemoHeaderKey,
 } from './memo'
 import { FALLBACK_MODEL, RESEARCH_MODEL } from '@/lib/ai/models'
+import { DEMO_AI_MODEL, demoAiDelay, isAiAvailable, isScriptedAi } from '@/lib/ai/demo'
+import { scriptedGrantResearch } from '@/lib/ai/demo-scripts'
 import {
   MISSING_MISSION_QUESTION,
   organizationBlock,
@@ -54,8 +56,9 @@ export interface GrantResearchDraft {
   open_questions: string[]
 }
 
+/** A key, or demo mode's scripted provider (lib/ai/demo.ts) */
 export function isGrantResearchEnabled(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY)
+  return isAiAvailable()
 }
 
 const SECTION_PROPERTIES = Object.fromEntries(
@@ -274,6 +277,10 @@ export interface GrantResearchResult {
  */
 export async function runGrantResearch(input: GrantResearchInput): Promise<GrantResearchResult> {
   if (!isGrantResearchEnabled()) throw new Error('ANTHROPIC_API_KEY is not configured')
+  if (isScriptedAi()) {
+    await demoAiDelay(input.applicantName)
+    return { draft: scriptedGrantResearch(input), model: DEMO_AI_MODEL }
+  }
   const client = new Anthropic()
 
   let model = RESEARCH_MODEL

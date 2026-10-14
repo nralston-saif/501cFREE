@@ -1,4 +1,4 @@
-import { isDemoMode } from '@/lib/supabase/demo/mock-client'
+import { isAiAvailable } from '@/lib/ai/demo'
 
 // The lightweight half of the notes-inbox pipeline: safe to import from any
 // page. The Claude pipeline itself (Anthropic SDK, sharp, mammoth, xlsx)
@@ -6,12 +6,13 @@ import { isDemoMode } from '@/lib/supabase/demo/mock-client'
 // dynamic import, so pages never trace or bundle those libraries.
 
 /**
- * Off without ANTHROPIC_API_KEY, and always off in demo mode: the drop zone
- * uploads straight to Storage with the browser client, which demo mode
- * stubs out (auth only), so an upload there would crash.
+ * On with ANTHROPIC_API_KEY, or in demo mode with the scripted provider
+ * (lib/ai/demo.ts). In demo mode the drop zone stages files through the
+ * stageNoteIntakeFile server action into the demo store, since the browser
+ * Supabase client is a stub there.
  */
 export function isNoteIntakeEnabled(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY) && !isDemoMode()
+  return isAiAvailable()
 }
 
 /** A failure whose message is safe to show the uploader */

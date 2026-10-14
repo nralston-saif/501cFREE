@@ -16,7 +16,12 @@ type Row = Record<string, unknown>
 interface DemoStore {
   tables: Record<string, Row[]>
   files: Map<string, { bytes: Uint8Array; contentType: string }>
+  /** Date.now() when seeded; the store reseeds after DEMO_RESET_MS */
+  seededAt: number
 }
+
+/** A public demo forgets visitors' changes and uploads this often */
+export const DEMO_RESET_MS = 6 * 60 * 60 * 1000
 
 // Stable ids so seeded relations hold together
 const ids = {
@@ -121,6 +126,48 @@ export function contactDisplayName(row: Record<string, unknown>): string | null 
   return full || ((row.name as string | null) ?? null)
 }
 
+/** A pending Banking item, shaped like a pulled QuickBooks transaction */
+function qboItem(
+  id: string,
+  entityType: 'Purchase' | 'Deposit' | 'Transfer',
+  qboId: string,
+  date: string,
+  amountCents: number,
+  direction: 'money_in' | 'money_out' | null,
+  counterparty: string | null,
+  memo: string,
+  suggestion: Row
+): Row {
+  return {
+    id,
+    qbo_entity_type: entityType,
+    qbo_entity_id: qboId,
+    kind: 'new',
+    status: 'pending',
+    raw: { Id: qboId, TxnDate: date, TotalAmt: amountCents / 100, PrivateNote: memo },
+    previous_raw: null,
+    txn_date: date,
+    amount_cents: amountCents,
+    direction,
+    counterparty_name: counterparty,
+    qbo_payment_account_id: null,
+    qbo_line_account_ids: [],
+    qbo_doc_number: null,
+    qbo_private_note: memo,
+    suggestion,
+    resolution: null,
+    dismiss_reason: null,
+    reviewed_by: null,
+    reviewed_at: null,
+    expense_id: null,
+    contribution_id: null,
+    disbursement_id: null,
+    pri_id: null,
+    first_seen_at: `${date}T18:00:00Z`,
+    ...ts(date),
+  }
+}
+
 const noQbo = {
   qbo_purchase_id: null,
   qbo_sync_status: 'not_synced',
@@ -144,7 +191,6 @@ The Example Literacy Fund Team`
 
 function buildSeedTables(): Record<string, Row[]> {
   return {
-    audit_log: [],
     team_members: [
       { id: ids.alex, auth_user_id: DEMO_AUTH_USER_ID, email: DEMO_USER_EMAIL, full_name: 'Alex Rivera', is_active: true, role: 'admin', ...ts('2026-01-05') },
       { id: ids.sam, auth_user_id: null, email: 'sam@example.org', full_name: 'Sam Patel', is_active: true, role: 'admin', ...ts('2026-01-05') },
@@ -263,7 +309,32 @@ function buildSeedTables(): Record<string, Row[]> {
     qbo_sync_state: [
       { id: 1, pull_enabled: false, auto_apply_enabled: false, pull_since: '2026-07-01', last_cdc_at: null, last_run_at: null, last_run_status: null, last_run_error: null, last_run_stats: null, updated_at: '2026-07-01T12:00:00Z' },
     ],
-    qbo_inbox: [],
+    // Sample bank-feed transactions waiting in Banking, as a QuickBooks pull
+    // would leave them (demo mode can't connect to QuickBooks)
+    qbo_inbox: [
+      qboItem('00000000-0000-0000-0000-000000001701', 'Purchase', '9001', '2026-07-01', 1_750_000, 'money_out', 'Riverbend Readers', 'Wire to Riverbend Readers', {
+        type: 'disbursement_paid',
+        disbursement_id: ids.disb2,
+        grant_out_id: ids.award1,
+        grantee_name: 'Riverbend Readers',
+        auto_apply: false,
+        reason: 'Exact match: scheduled disbursement of the same amount to Riverbend Readers.',
+      }),
+      qboItem('00000000-0000-0000-0000-000000001702', 'Purchase', '9002', '2026-07-06', 8_900, 'money_out', 'Northwind Cloud Software', 'NORTHWIND CLOUD SOFTWARE 07/06', {
+        type: 'new_expense',
+        prefill: { expense_date: '2026-07-06', amount_cents: 8_900, description: 'Northwind Cloud Software', category_id: ids.catSoftware, payment_method: 'card', vendor_contact_id: null },
+        reason: 'New transaction from QuickBooks with no matching record here.',
+      }),
+      qboItem('00000000-0000-0000-0000-000000001703', 'Deposit', '9003', '2026-07-09', 100_000, 'money_in', 'Jane Donor', 'Mobile check deposit', {
+        type: 'new_contribution',
+        prefill: { received_date: '2026-07-09', amount_cents: 100_000, contact_id: ids.donorJane, counterparty_name: 'Jane Donor' },
+        reason: 'Deposit to an income account from Jane Donor — looks like a contribution.',
+      }),
+      qboItem('00000000-0000-0000-0000-000000001704', 'Transfer', '9004', '2026-07-10', 2_500_000, null, null, 'Transfer from savings', {
+        type: 'dismiss',
+        reason: 'Internal transfer between accounts — no record needed here.',
+      }),
+    ],
     qbo_mappings: [],
     grant_proposals: [
       { id: ids.proposal1, applicant_contact_id: ids.granteeReaders, title: 'Summer reading corps', summary: 'Twelve-month program placing trained reading tutors in rural summer programs across six counties.', program_areas: ['early-literacy', 'teacher-training'], amount_requested_cents: 5_000_000, received_date: '2026-03-01', entered_date: '2026-03-01', source: 'email', status: 'decided', origin: 'internal', applicant_name: null, applicant_email: null, organization_name: null, raw_submission: null, votes_revealed: true, decision: 'approved', decision_date: '2026-04-15', decision_notes: 'Strong team, clear milestones. Approved at the requested amount less the travel line.', declined_stage: null, draft_response_email: null, response_email_sent_at: null, ...ts('2026-03-01') },
@@ -332,11 +403,16 @@ const globalKey = Symbol.for('501c-free.demo-store')
 
 type GlobalWithStore = typeof globalThis & { [globalKey]?: DemoStore }
 
-/** Singleton store surviving HMR / repeated imports within a server instance */
+/**
+ * Singleton store surviving HMR / repeated imports within a server instance.
+ * Reseeded after DEMO_RESET_MS, so a long-running public demo returns to the
+ * sample data (and drops uploads) every few hours.
+ */
 export function getDemoStore(): DemoStore {
   const g = globalThis as GlobalWithStore
-  if (!g[globalKey]) {
-    g[globalKey] = { tables: buildSeedTables(), files: new Map() }
+  const current = g[globalKey]
+  if (!current || Date.now() - current.seededAt > DEMO_RESET_MS) {
+    g[globalKey] = { tables: buildSeedTables(), files: new Map(), seededAt: Date.now() }
   }
-  return g[globalKey]
+  return g[globalKey]!
 }

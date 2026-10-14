@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
-import { splitOrTerms } from './mock-client'
+import { describe, expect, it, vi } from 'vitest'
+import { createDemoClient, splitOrTerms } from './mock-client'
+import { DEMO_RESET_MS, getDemoStore } from './store'
 
 describe('splitOrTerms', () => {
   it('splits on top-level commas', () => {
@@ -48,5 +49,39 @@ describe('demo client', () => {
     expect(page.data).toEqual(all.data.slice(1, 3))
     const missing = (await demo.rpc('no_such_function', {})) as { error: { message: string } | null }
     expect(missing.error?.message).toMatch(/not available/)
+  })
+})
+
+describe('demo storage', () => {
+  it('signs several paths at once, flagging missing files', async () => {
+    const bucket = createDemoClient().storage.from('note-files')
+    await bucket.upload('intake-1/a.txt', new Uint8Array([104, 105]), { contentType: 'text/plain' })
+    const { data } = await bucket.createSignedUrls(['intake-1/a.txt', 'intake-1/missing.txt'])
+    expect(data[0]).toMatchObject({ path: 'intake-1/a.txt', error: null })
+    expect(data[0].signedUrl).toContain('/api/demo-files?key=')
+    expect(data[1]).toMatchObject({ path: 'intake-1/missing.txt', signedUrl: null })
+  })
+})
+
+describe('demo store reset', () => {
+  it('reseeds after DEMO_RESET_MS', async () => {
+    const client = createDemoClient()
+    await client.from('tags').insert({ name: 'temporary' })
+    expect(getDemoStore().tables.tags.some((t) => t.name === 'temporary')).toBe(true)
+    vi.useFakeTimers()
+    try {
+      vi.setSystemTime(Date.now() + DEMO_RESET_MS + 1000)
+      expect(getDemoStore().tables.tags.some((t) => t.name === 'temporary')).toBe(false)
+      expect(getDemoStore().tables.qbo_inbox.length).toBeGreaterThan(0)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})
+
+describe('demo inserts', () => {
+  it('fill in the column defaults Postgres would', async () => {
+    const { data } = await createDemoClient().from('note_intakes').insert({ created_by: 'x' }).select('*').single()
+    expect(data).toMatchObject({ status: 'uploading', note_ids: [] })
   })
 })

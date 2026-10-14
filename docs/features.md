@@ -207,11 +207,11 @@ One block per area: what it does, who can use it, where the code is, and the rul
 
 | | |
 |---|---|
-| Does | Organization identity, address, mission, time zone, fiscal year, PRI threshold, IRS classification, grant review mode, letter signatory and from-address, letter wording per vehicle (`LetterTemplatesCard.tsx`); signature image; program areas (add, rename, reorder, deactivate, delete if unused); QuickBooks connection and mappings; team (invite, role, deactivate); governance documents; team activity log. |
+| Does | Organization identity, address, mission, time zone, fiscal year, PRI threshold, IRS classification, grant review mode, letter signatory and from-address, letter wording per vehicle (`LetterTemplatesCard.tsx`); signature image; program areas (add, rename, reorder, deactivate, delete if unused); QuickBooks connection and mappings; team (invite, role, deactivate); governance documents. |
 | Who | **Admins only** (`settings/layout.tsx`) |
-| Routes | `app/(app)/settings/` (`OrgSettingsForm.tsx`, `SignatureCard.tsx`, `ProgramAreasCard.tsx`, `QuickBooksCard.tsx`, `TeamCard.tsx`, `TeamMemberRow.tsx`, `AddTeamMemberForm.tsx`), `settings/activity/` |
+| Routes | `app/(app)/settings/` (`OrgSettingsForm.tsx`, `SignatureCard.tsx`, `ProgramAreasCard.tsx`, `QuickBooksCard.tsx`, `TeamCard.tsx`, `TeamMemberRow.tsx`, `AddTeamMemberForm.tsx`) |
 | Actions | `settings.ts`: `updateSettingsAction`, `updateLetterTemplatesAction`, `createProgramArea`, `updateProgramArea`, `setProgramAreaActive`, `moveProgramArea`, `deleteProgramArea`, `uploadSignatureAction`, `removeSignatureAction`. `team.ts`: `addTeamMemberAction`, `setTeamMemberActiveAction`, `setTeamMemberRoleAction`. Governance files use `attachments.ts` with `entity_type = 'governance'` and the nil UUID. |
-| Tables | `org_settings`, `program_areas`, `team_members`, `attachments`, `audit_log`; storage `letters` (`assets/signature`) |
+| Tables | `org_settings`, `program_areas`, `team_members`, `attachments`; storage `letters` (`assets/signature`) |
 | Rules | These forms use `useActionState` with `{ error, ok }` results. Inviting adds the `team_members` row, then sends a Supabase invite (an existing login is linked instead). Deactivating sets `is_active = false` and bans the login; at least one active admin must remain. You can't deactivate yourself. |
 
 ## Account and sign-in

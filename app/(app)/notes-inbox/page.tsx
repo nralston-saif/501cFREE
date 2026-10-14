@@ -6,6 +6,8 @@ import { getAuthState } from '@/lib/auth'
 import type { NoteIntakeStatus } from '@/lib/supabase/types/database'
 import { isNoteIntakeEnabled } from '@/lib/note-intake-core/config'
 import { isDemoMode } from '@/lib/supabase/demo/mock-client'
+import { isScriptedAi } from '@/lib/ai/demo'
+import DemoAiBadge from '@/components/DemoAiBadge'
 import DropZone from './DropZone'
 import { IntakeStatusBadge } from './IntakeStatusBadge'
 
@@ -19,7 +21,7 @@ export default async function NotesInboxPage() {
   const { data } = memberId
     ? await supabase
         .from('note_intakes')
-        .select('id, status, created_at, error, note_ids, files:note_intake_files(file_name)')
+        .select('id, status, created_at, error, note_ids, files:note_intake_files!intake_id(file_name)')
         .eq('created_by', memberId)
         .order('created_at', { ascending: false })
         .limit(50)
@@ -40,13 +42,18 @@ export default async function NotesInboxPage() {
         title="Notes inbox"
         description="Drop in meeting notes in any common format, including photos of handwritten pages. Claude writes them up and suggests which contacts, grants and PRIs they belong on. You review everything before it's saved."
       />
+      {isScriptedAi() && (
+        <p className="mb-4 flex flex-wrap items-center gap-2 text-sm text-gray-600">
+          <DemoAiBadge />
+          In this demo the files aren&rsquo;t read: any drop gets sample notes linked to the demo
+          contacts, for you to review and file like real ones. Files up to 8 MB.
+        </p>
+      )}
       {isNoteIntakeEnabled() ? (
-        <DropZone />
+        <DropZone stageOnServer={isDemoMode()} />
       ) : (
         <p className="mb-8 text-sm text-amber-700">
-          {isDemoMode()
-            ? 'Uploading notes is off in demo mode.'
-            : 'AI note filing isn’t configured on this deployment (ANTHROPIC_API_KEY).'}
+          AI note filing isn&rsquo;t configured on this deployment (ANTHROPIC_API_KEY).
         </p>
       )}
 

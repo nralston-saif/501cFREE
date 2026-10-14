@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/Toast'
 import { withBasePath } from '@/lib/basePath'
 import { formatDate } from '@/lib/utils/dates'
+import { DEMO_AI_MODEL } from '@/lib/ai/demo-label'
+import DemoAiBadge from '@/components/DemoAiBadge'
 import type { GrantResearch } from '@/lib/supabase/types/database'
 
 interface Source {
@@ -67,7 +69,10 @@ export default function MemoResearchPanel({
   return (
     <div className="card p-5">
       <div className="flex items-center justify-between mb-2 gap-3">
-        <h3 className="font-medium text-gray-900">AI research</h3>
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="font-medium text-gray-900">AI research</h3>
+          {research?.status === 'complete' && research.model === DEMO_AI_MODEL && <DemoAiBadge />}
+        </div>
         <button
           type="button"
           onClick={handleRun}

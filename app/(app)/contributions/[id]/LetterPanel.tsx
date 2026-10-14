@@ -14,6 +14,8 @@ interface LetterPanelProps {
   hasEmail: boolean
   /** Outgoing email (Resend) is configured; otherwise sending is hidden */
   emailEnabled: boolean
+  /** Demo mode: "sending" only marks the letter sent; no email goes out */
+  emailDemo?: boolean
 }
 
 function formatSentDate(isoTimestamp: string): string {
@@ -24,7 +26,7 @@ function formatSentDate(isoTimestamp: string): string {
   })
 }
 
-export default function LetterPanel({ contributionId, letter, hasEmail, emailEnabled }: LetterPanelProps) {
+export default function LetterPanel({ contributionId, letter, hasEmail, emailEnabled, emailDemo = false }: LetterPanelProps) {
   const [isPending, startTransition] = useTransition()
   const { showToast } = useToast()
 
@@ -43,15 +45,17 @@ export default function LetterPanel({ contributionId, letter, hasEmail, emailEna
   }
 
   const handleSend = (resend: boolean) => {
-    const message = resend
-      ? 'Resend the acknowledgement letter to the donor?'
-      : 'Email the acknowledgement letter to the donor?'
+    const message = emailDemo
+      ? 'Demo: mark the letter as emailed? No email is sent.'
+      : resend
+        ? 'Resend the acknowledgement letter to the donor?'
+        : 'Email the acknowledgement letter to the donor?'
     if (!confirm(message)) return
 
     startTransition(async () => {
       try {
         unwrap(await sendLetter(contributionId))
-        showToast('Letter emailed to donor', 'success')
+        showToast(emailDemo ? 'Marked as sent (demo: no email was sent)' : 'Letter emailed to donor', 'success')
       } catch (err) {
         showToast(err instanceof Error ? err.message : 'Could not send letter', 'error')
       }
@@ -105,6 +109,12 @@ export default function LetterPanel({ contributionId, letter, hasEmail, emailEna
         {hasGenerated && !emailEnabled && (
           <p className="text-xs text-gray-400">
             Email isn&apos;t set up (add RESEND_API_KEY), so download the PDF and send it yourself.
+          </p>
+        )}
+
+        {hasGenerated && emailEnabled && emailDemo && (
+          <p className="text-xs text-gray-500">
+            Demo: email is off. The button below only marks the letter as sent; no email goes out.
           </p>
         )}
 

@@ -4,6 +4,9 @@ import { revalidatePath } from 'next/cache'
 import {
   CONTACT_ROLES,
   ORG_RELATIONSHIPS,
+  DEMO_STAGE_MAX_BYTES,
+  checkFile,
+  storagePathFor,
   isReviewDraft,
   renderNoteHtml,
   type ContactKind,
@@ -14,6 +17,7 @@ import {
 } from '@/lib/note-intake-core'
 import type { Json } from '@/lib/supabase/types/database'
 import { createClient } from '@/lib/supabase/server'
+import { isDemoMode } from '@/lib/supabase/demo/mock-client'
 import { sanitizeRichText } from '@/lib/security/sanitize-html'
 import { getOrgSettings } from '@/lib/settings'
 import { todayInTimeZone } from '@/lib/utils/dates'
@@ -52,6 +56,45 @@ export async function createNoteIntake(): Promise<Result<{ id: string }>> {
     return { ok: true, id: data.id }
   } catch (err) {
     return fail(err, 'Could not start upload')
+  }
+}
+
+/**
+ * Demo mode only: record and store one dropped file under an intake. Live
+ * installs upload straight to the note-files bucket from the browser (no
+ * body-size cap); demo mode has no real storage to upload to.
+ */
+export async function stageNoteIntakeFile(intakeId: string, formData: FormData): Promise<Result> {
+  try {
+    await requireMemberId()
+    if (!isDemoMode()) throw new ActionError('Upload files directly to storage')
+    const file = formData.get('file')
+    if (!(file instanceof File)) throw new ActionError('No file provided')
+    const check = checkFile(file.name, file.size)
+    if (!check.ok) throw new ActionError(`${file.name}: ${check.reason}`)
+    if (file.size > DEMO_STAGE_MAX_BYTES) throw new ActionError(`${file.name}: the demo takes files up to 8 MB.`)
+
+    const supabase = await createClient()
+    const { data: intake } = await supabase.from('note_intakes').select('id, status').eq('id', intakeId).maybeSingle()
+    if (!intake) throw new ActionError('Upload not found')
+    if (intake.status === 'filed') throw new ActionError('These notes are already filed')
+
+    const path = storagePathFor(intakeId, file.name, crypto.randomUUID())
+    const { error: uploadError } = await supabase.storage
+      .from(NOTE_FILES_BUCKET)
+      .upload(path, file, { contentType: check.mime, upsert: false })
+    if (uploadError) throw new ActionError(`Couldn't upload ${file.name}: ${uploadError.message}`)
+    const { error: rowError } = await supabase.from('note_intake_files').insert({
+      intake_id: intakeId,
+      storage_path: path,
+      file_name: file.name,
+      mime_type: check.mime,
+      size_bytes: file.size,
+    })
+    if (rowError) throw new ActionError(`Couldn't record ${file.name}: ${rowError.message}`)
+    return { ok: true }
+  } catch (err) {
+    return fail(err, 'Upload failed')
   }
 }
 

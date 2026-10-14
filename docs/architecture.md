@@ -110,7 +110,7 @@ PostgREST returns at most `max_rows` rows per request (1000 on Supabase, configu
 
 - **Whitelist.** `team_members` (email, `full_name`, `role` `admin`/`staff`, `is_active`, `auth_user_id`) is the sign-in list. The `on_auth_user_created` trigger (`link_team_member()`, `0001_core.sql`) rejects any auth user whose email isn't on it, and links `auth_user_id` only when the user was invited (`invited_at`) or has a confirmed email. `on_auth_user_confirmed` links an unconfirmed sign-up once it confirms. A team email alone can't claim a seat.
 - **At least one active admin** always exists (`keep_an_active_admin` trigger).
-- **Roles.** Admin: everything, including expenses, Banking/QuickBooks, Reports and exports, Settings (team, audit log), making awards and paying disbursements. Staff: everything else.
+- **Roles.** Admin: everything, including expenses, Banking/QuickBooks, Reports and exports, Settings (team), making awards and paying disbursements. Staff: everything else.
 - **Grant reviewers.** Who votes on, advances and decides proposals is `org_settings.grant_review_mode`: `all_members` (default, every active member) or `admins`. SQL: `grant_review_mode()`, `is_grant_voter_member(id)`, `is_grant_voter()` (`0005_grantmaking.sql`); app: `isVotingMember()` (`lib/grants/voting.ts`) and `requireGrantVoterId()` (`lib/actions/helpers.ts`).
 - **SQL helpers** (`0001_core.sql`, `SECURITY DEFINER`): `is_team_member()`, `is_admin()`, `current_member_id()`. Policies use them, always wrapped as `(select is_team_member())` so Postgres evaluates each once per statement (an init plan) instead of once per row; the meaning is the same. A test in `schema.test.ts` ("policy performance") fails on a bare call. Helpers that take a column (`note_file_owned(name)`) are per row by nature.
 - **`getAuthState()`** (`lib/auth.ts`, cached per request with React `cache`): validates the JWT locally with `getClaims()` (no auth-server round trip), then reads the active `team_members` row. Returns `{ userId, memberId, memberRole, isAdmin, memberName }`.
@@ -130,7 +130,6 @@ All tables are in `supabase/migrations/`. Every table has RLS. Unless noted, the
 | `team_members` | `email`, `full_name`, `role`, `is_active`, `auth_user_id`. Members read; admins write. |
 | `org_settings` | Singleton (`id = 1`). Legal/display name, `org_aliases`, EIN, address, `mission_statement`, `timezone`, `fiscal_year_start_month`, `pri_board_approval_threshold_cents`, `public_charity_status` (letters), `grant_review_mode`, `letter_templates` (jsonb letter wording overrides), letter signatory/from-address/closing. Admins update. |
 | `program_areas` | `slug` (PK), `label`, `sort_order`, `is_active`. Admins write. `assert_program_areas()` validates slug arrays. |
-| `audit_log` | `actor_*`, `event_type` (`table:insert`, `login`, ...), `entity_type`, `entity_id`. Admins read; written by triggers only. |
 
 **Contacts and CRM** (`0002_contacts_and_crm.sql`)
 
@@ -194,7 +193,7 @@ Paying a disbursement creates an `expenses` row in the `grants_paid` category wi
 
 **Summaries** (`0010_summaries.sql`): read-only totals and per-record counts for pages (see [Loading data](#loading-data)).
 
-**Cross-cutting** (`0090_triggers.sql`): `set_updated_at` on every table with `updated_at`; `audit_write` on the listed tables; note-link and contact-attachment cleanup on delete. **Defaults** (`0091_default_data.sql`): Form 990 Part IX expense categories.
+**Cross-cutting** (`0090_triggers.sql`): `set_updated_at` on every table with `updated_at`; note-link and contact-attachment cleanup on delete. (It also creates v0.1.0's `audit_write` triggers, which `0100_remove_activity_log.sql` drops again along with `audit_log` and its session triggers: the app keeps no activity log.) **Defaults** (`0091_default_data.sql`): Form 990 Part IX expense categories.
 
 ## Database-enforced rules
 
@@ -249,7 +248,7 @@ All optional (`ANTHROPIC_API_KEY`); model ids in `lib/ai/models.ts` (`RESEARCH_M
 | PRI research | `lib/pris/research.ts` via `app/api/pris/[id]/research` | The ten PRI memo answers into `pri_research` | Same as above | Panel hidden |
 | Decline email | `lib/grants/decline-email.ts` via `app/api/proposals/[id]/decline-email` | `draft_response_email` | Edit, copy into your own email, "Mark as sent". The app never sends it. | No draft button |
 | Invoice reading | `lib/invoices/extract.ts` via `app/api/invoices/extract` | Vendor, date, amount, category... for bulk upload rows | Review each row; it becomes an expense only when saved | "Auto-reading is off"; manual entry |
-| Notes inbox | `lib/note-intake-core/server.ts` via `app/api/note-intake/[id]/process` (in `after()`) | Proposed notes, links and new contacts in `note_intakes.proposal` | Review and file (`fileNoteIntake`) | Notice on the page; route returns 503. Also off in demo mode (the drop zone uploads with the browser client, which demo mode stubs) |
+| Notes inbox | `lib/note-intake-core/server.ts` via `app/api/note-intake/[id]/process` (in `after()`) | Proposed notes, links and new contacts in `note_intakes.proposal` | Review and file (`fileNoteIntake`) | Notice on the page; route returns 503. In demo mode the drop zone stages files through `stageNoteIntakeFile` (the browser client is a stub there) |
 
 Documents you upload to these features are sent to Anthropic's API.
 
@@ -272,8 +271,10 @@ Cron routes (`app/api/cron/*`) check `Authorization: Bearer $CRON_SECRET` with `
 
 - On whenever `NEXT_PUBLIC_USE_SUPABASE` isn't `true` or `NEXT_PUBLIC_SUPABASE_URL` is unset (`isDemoMode()` in `lib/supabase/demo/mock-client.ts`). `createClient()`, `createClientSnapshot()` and `createAdminClient()` all return the mock; the browser client is a stub.
 - No login: `proxy.ts` skips auth and the mock's `auth.getUser()` returns a demo admin.
-- Data: `lib/supabase/demo/store.ts`, a fictional literacy nonprofit. Writes live in server memory and reset on restart or a new serverless instance. Files are served by `app/api/demo-files/route.ts`.
-- **Limitations:** the mock implements only the query-builder methods the app uses (listed at the top of `mock-client.ts`, including `range()`), resolves embedded selects only when they carry an FK column hint (`alias:table!fk_column(...)`; many-to-one when the column is on the row, one-to-many otherwise, always an array), implements `rpc()` only for the functions in `lib/supabase/demo/functions.ts`, runs no RLS, constraints or triggers, and only emulates the `contacts.display_name` generated column. Letters are marked sent without email. Keep `store.ts` in step with the schema.
+- Data: `lib/supabase/demo/store.ts`, a fictional literacy nonprofit. Writes live in server memory and reset on restart, on a new serverless instance, and every six hours (`DEMO_RESET_MS`), so the app can run as a public sandbox (the banner in `app/(app)/layout.tsx` says so). Files are served by `app/api/demo-files/route.ts`; the mock keeps at most 200 MB of uploads, dropping the oldest. Uploads that live installs send straight from the browser to Storage (bulk invoices, notes inbox) go through server actions instead (`stageInvoiceFile`, `stageNoteIntakeFile`; 8 MB per notes-inbox file in the demo).
+- **Scripted AI.** In demo mode without `ANTHROPIC_API_KEY`, every AI feature uses the scripted provider instead of Claude (`isScriptedAi()` in `lib/ai/demo.ts`; the outputs are pure functions in `lib/ai/demo-scripts.ts`, tested in `demo-scripts.test.ts`). After a 1–2 second pause it returns sample results: an invoice reading chosen from the file name, grant and PRI memo drafts with example.org sources and open questions, a decline email using the applicant's names, and notes-inbox proposals linked to existing contacts. Nothing reads the uploaded files. Results carry the model id `DEMO_AI_MODEL` and the UI labels them "Demo: sample AI output" (`components/DemoAiBadge.tsx`). With a key, demo mode calls Claude as usual; outside demo mode, no key still hides or explains the features.
+- **Integrations in demo mode.** QuickBooks can't connect: Settings, Banking and the expense page show `components/QuickBooksDemoNote.tsx` (a summary of [quickbooks.md](quickbooks.md)) instead of connect, sync and send controls, and Banking lists sample bank-feed items (`qbo_inbox` in `store.ts`) to try the review flow. Letter "email" only marks the letter sent and says so. Meetings use the plain editor, stock prices are entered by hand, and adding team members or changing passwords is refused with a message.
+- **Limitations:** the mock implements only the query-builder methods the app uses (listed at the top of `mock-client.ts`, including `range()`), resolves embedded selects only when they carry an FK column hint (`alias:table!fk_column(...)`; many-to-one when the column is on the row, one-to-many otherwise, always an array), implements `rpc()` only for the functions in `lib/supabase/demo/functions.ts`, runs no RLS, constraints or triggers, only emulates the `contacts.display_name` generated column, and fills in only the column defaults listed in `COLUMN_DEFAULTS` (add one when an insert relies on a new default). Letters are marked sent without email. Keep `store.ts` in step with the schema.
 
 ## Testing
 

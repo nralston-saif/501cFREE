@@ -46,7 +46,7 @@ A change is done when `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build
 - `lib/actions/server-actions-guard.test.ts` fails if a `throw`, `requireMemberId()`, `requireAdminId()` or `requiredString()` in an exported `'use server'` function isn't inside `runAction(...)`, `asState(...)` or a `try` block.
 
 **Access control lives in the database.**
-- Row-level security (RLS) plus triggers are the real gate: every table needs an active team member; expenses, QuickBooks tables and the audit log need an admin. Triggers in `supabase/migrations/0009_business_rules.sql` enforce blind voting, money rules, letter locks and the PRI funding gate even if app code is bypassed.
+- Row-level security (RLS) plus triggers are the real gate: every table needs an active team member; expenses, QuickBooks tables and team management need an admin. Triggers in `supabase/migrations/0009_business_rules.sql` enforce blind voting, money rules, letter locks and the PRI funding gate even if app code is bypassed.
 - Every action starts with `requireMemberId()` or `requireAdminId()` (`lib/actions/helpers.ts`). App checks are for a clear message; keep them consistent with RLS.
 - Use the RLS client (`createClient()` from `lib/supabase/server.ts`) for user work. The service-role client (`createAdminClient()` in `lib/supabase/admin.ts`) is only for cron, public intake, PDF/letter storage writes, signed URLs a session can't make, and auth admin (invites). Service-role sessions have no `auth.uid()` and skip most of the triggers' user rules (the PRI funding gate and the contribution lock still apply).
 
@@ -69,7 +69,7 @@ A change is done when `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build
 
 **Types and demo data are hand-maintained.** `lib/supabase/types/database.ts` mirrors the migrations (no generator). `lib/supabase/demo/store.ts` is the demo dataset. Update both with every schema change.
 
-**Migrations.** The project is released (v0.1.0): organizations run it, so **never edit a migration that has shipped**. Edits to an old file never reach existing installations. Add a new file instead, numbered from `0100` up (`0100_short_name.sql`, `0101_…`) so it sorts after the baseline `0001`–`0091` for fresh and existing installs alike. `0090_triggers.sql` only covered the tables that existed then, so a migration that adds a table must also create that table's `set_updated_at` and `audit_write` triggers itself. List every new migration under its release in `CHANGELOG.md`. Indexes go with their table; add one for any new hot filter + sort pair (e.g. `(status, txn_date desc)`).
+**Migrations.** The project is released (v0.1.0): organizations run it, so **never edit a migration that has shipped**. Edits to an old file never reach existing installations. Add a new file instead, numbered from `0100` up (`0100_short_name.sql`, `0101_…`) so it sorts after the baseline `0001`–`0091` for fresh and existing installs alike. `0090_triggers.sql` only covered the tables that existed then, so a migration that adds a table must also create that table's `set_updated_at` trigger itself. List every new migration under its release in `CHANGELOG.md`. Indexes go with their table; add one for any new hot filter + sort pair (e.g. `(status, txn_date desc)`).
 
 ## Gotchas
 
@@ -90,11 +90,10 @@ A change is done when `pnpm typecheck`, `pnpm lint`, `pnpm test` and `pnpm build
 **Add a table or column**
 1. Pre-release: edit the baseline migration for that domain (`0002`–`0007`). Post-release: add a new numbered migration.
 2. Enable RLS and add policies (`is_team_member()`, `is_admin()`, `current_member_id()` from `0001_core.sql`). **Always wrap helper calls in `(select …)` in policies**: `using ((select is_team_member()))`, `created_by = (select current_member_id())`. Postgres then evaluates them once per statement instead of once per row; the meaning is identical. `supabase/tests/schema.test.ts` ("policy performance") fails on a bare call. Helpers that take a row value (`note_file_owned(name)`) can't be hoisted and stay as they are.
-3. New table: add it to the audit list in `0090_triggers.sql` (the `updated_at` loop there picks it up automatically). A post-release migration must create both triggers itself, since `0090` has already run.
-4. Any business rule that must hold for every client goes in a trigger (see `0009_business_rules.sql`); let `auth.uid() is null` (service role) through.
-5. Update `lib/supabase/types/database.ts` and `lib/supabase/demo/store.ts`.
-6. Add a test to `supabase/tests/schema.test.ts` (use `asUser` / `asService` from `supabase/tests/db.ts`).
-7. Run `pnpm db:bundle` to regenerate `supabase/setup.sql` (the one-paste install script). `supabase/tests/setup-sql.test.ts` fails while it's out of date. Never edit `setup.sql` by hand.
+3. Any business rule that must hold for every client goes in a trigger (see `0009_business_rules.sql`); let `auth.uid() is null` (service role) through.
+4. Update `lib/supabase/types/database.ts` and `lib/supabase/demo/store.ts`.
+5. Add a test to `supabase/tests/schema.test.ts` (use `asUser` / `asService` from `supabase/tests/db.ts`).
+6. Run `pnpm db:bundle` to regenerate `supabase/setup.sql` (the one-paste install script). `supabase/tests/setup-sql.test.ts` fails while it's out of date. Never edit `setup.sql` by hand.
 
 **Add a server action**
 1. Put it in the domain's file in `lib/actions/` (`'use server'`).

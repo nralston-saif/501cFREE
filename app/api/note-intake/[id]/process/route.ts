@@ -8,6 +8,8 @@ import { getAuthState } from '@/lib/auth'
 import { getOrgSettings, orgName } from '@/lib/settings'
 import { todayInTimeZone } from '@/lib/utils/dates'
 import { listLinkableRecords, searchContacts } from '@/lib/note-intake/context'
+import { DEMO_AI_MODEL, demoAiDelay, isScriptedAi } from '@/lib/ai/demo'
+import { scriptedNoteIntake, type DemoContact } from '@/lib/ai/demo-scripts'
 
 export const dynamic = 'force-dynamic'
 // Reading several files plus a few contact searches takes one to three
@@ -65,6 +67,31 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     try {
       const settings = await getOrgSettings(supabase)
       const records: LinkableRecord[] = await listLinkableRecords(supabase).catch(() => [])
+
+      // Demo mode without a key: sample notes linked to existing contacts
+      if (isScriptedAi()) {
+        const { data: contactRows } = await supabase
+          .from('contacts')
+          .select('id, kind, display_name, is_vendor')
+          .eq('is_active', true)
+          .eq('is_vendor', false)
+          .order('display_name')
+          .limit(100)
+        const contacts: DemoContact[] = (contactRows ?? []).map((c) => ({ id: c.id, kind: c.kind, name: c.display_name }))
+        const fileNames = fileRows.map((f) => f.file_name)
+        await demoAiDelay(fileNames.join('|'))
+        const proposal = scriptedNoteIntake(fileNames, contacts, records, todayInTimeZone(settings.timezone))
+        await supabase
+          .from('note_intakes')
+          .update({
+            status: 'ready',
+            proposal: proposal as unknown as Json,
+            model: DEMO_AI_MODEL,
+            processed_at: new Date().toISOString(),
+          })
+          .eq('id', id)
+        return
+      }
       const files: IntakeFile[] = await Promise.all(
         fileRows.map(async (row) => {
           const check = checkFile(row.file_name, 1)

@@ -8,6 +8,8 @@ import type { QboInboxItem, QboInboxStatus } from '@/lib/supabase/types/database
 import CreateTicketButton from '@/components/CreateTicketButton'
 import { msSince } from '@/lib/utils/dates'
 import { fetchAll } from '@/lib/supabase/fetch-all'
+import { isDemoMode } from '@/lib/supabase/demo/mock-client'
+import QuickBooksDemoNote from '@/components/QuickBooksDemoNote'
 
 type Tab = 'review' | 'auto' | 'done' | 'echo'
 
@@ -69,6 +71,7 @@ export default async function BankingPage({
   ])
 
   const counts = Object.fromEntries(tabCounts) as Record<Tab, number>
+  const demo = isDemoMode()
   const staleMs = syncState?.last_run_at ? msSince(syncState.last_run_at) : null
 
   return (
@@ -78,10 +81,20 @@ export default async function BankingPage({
         description="Transactions pulled from QuickBooks for review — approve, match, or dismiss."
       >
         <CreateTicketButton />
-        <SyncNowButton lastRunAt={syncState?.last_run_at ?? null} />
+        {!demo && <SyncNowButton lastRunAt={syncState?.last_run_at ?? null} />}
       </PageHeader>
 
-      {!connection && (
+      {demo && (
+        <div className="mb-6">
+          <QuickBooksDemoNote>
+            <p className="mt-2">
+              The transactions below are samples, so you can try the review flow: approving one
+              creates or updates the record here, as it would after a real pull.
+            </p>
+          </QuickBooksDemoNote>
+        </div>
+      )}
+      {!demo && !connection && (
         <div className="card p-4 mb-6 border-yellow-200 bg-yellow-50 text-sm text-yellow-800">
           QuickBooks is not connected.{' '}
           <Link href="/settings" className="font-medium underline">

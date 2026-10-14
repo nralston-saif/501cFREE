@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/server'
 import type { NoteLinkEntityType } from '@/lib/supabase/types/database'
 import { fetchByKeys } from '@/lib/supabase/fetch-all'
 import ReviewClient, { type FiledLink, type IntakeFileView } from './ReviewClient'
+import { DEMO_AI_MODEL } from '@/lib/ai/demo-label'
+import DemoAiBadge from '@/components/DemoAiBadge'
 
 export const dynamic = 'force-dynamic'
 
@@ -95,6 +97,12 @@ export default async function NoteIntakePage({ params }: { params: Promise<{ id:
           ← Notes inbox
         </Link>
       </div>
+      {intake.model === DEMO_AI_MODEL && intake.status !== 'filed' && (
+        <p className="mb-3 flex flex-wrap items-center gap-2 text-sm text-gray-600">
+          <DemoAiBadge />
+          These notes are pre-written samples, not a reading of your files.
+        </p>
+      )}
       <ReviewClient
         // Remount when a fresh proposal lands (after a re-read)
         key={intake.processed_at ?? 'pending'}

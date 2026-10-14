@@ -108,17 +108,12 @@ describe('row-level security', () => {
     expect(await rows(`select * from expenses`)).toHaveLength(0)
   })
 
-  it('keeps team management and the audit log admin-only', async () => {
+  it('keeps team management admin-only', async () => {
     await asUser(db, staff.userId)
     await db.query(`update team_members set role = 'admin' where id = $1`, [staff.memberId])
     await asService(db)
     const [m] = await rows<{ role: string }>(`select role from team_members where id = $1`, [staff.memberId])
     expect(m.role).toBe('staff')
-
-    await asUser(db, staff.userId)
-    expect(await rows(`select * from audit_log`)).toHaveLength(0)
-    await asUser(db, admin.userId)
-    expect((await rows(`select * from audit_log`)).length).toBeGreaterThan(0)
   })
 
   it('always keeps one active admin', async () => {

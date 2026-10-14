@@ -23,6 +23,8 @@ import {
 } from '../expenses/functional-class'
 import type { QboMapping } from '@/lib/supabase/types/database'
 import ActionForm from '@/components/ActionForm'
+import QuickBooksDemoNote from '@/components/QuickBooksDemoNote'
+import { isDemoMode } from '@/lib/supabase/demo/mock-client'
 
 const PAYMENT_METHOD_ROWS: { key: string; label: string }[] = [
   { key: 'card', label: 'Card' },
@@ -74,6 +76,15 @@ function AccountSelect({
 }
 
 export default async function QuickBooksCard() {
+  if (isDemoMode()) {
+    return (
+      <div className="card p-6">
+        <h2 className="font-medium text-gray-900 mb-3">QuickBooks</h2>
+        <QuickBooksDemoNote />
+      </div>
+    )
+  }
+
   const cfg = qboConfig()
   if (!cfg) {
     return (

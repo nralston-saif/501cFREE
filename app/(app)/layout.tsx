@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getAuthState } from '@/lib/auth'
 import { isDemoMode } from '@/lib/supabase/demo/mock-client'
+import { isScriptedAi } from '@/lib/ai/demo'
 import NavShell from '@/components/NavShell'
 
 export default async function AppLayout({
@@ -25,8 +26,11 @@ export default async function AppLayout({
     <NavShell isAdmin={isAdmin} userName={memberName}>
       {isDemoMode() && (
         <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
-          <span className="font-semibold">Demo mode</span> — no database connected. Open access
-          with sample data; changes are not saved permanently and reset periodically.
+          <span className="font-semibold">Public demo sandbox.</span> Fictional sample data that
+          anyone can view and change. It resets every few hours, so nothing you enter is kept.
+          Don&rsquo;t enter real personal data.{' '}
+          {isScriptedAi() ? 'AI results are pre-written samples, and email' : 'Email'} and QuickBooks
+          are switched off.
         </div>
       )}
       {children}

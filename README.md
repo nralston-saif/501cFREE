@@ -6,7 +6,7 @@ Built by [SAIF](https://saif.vc) for its nonprofit, SAIFbio, and open-sourced so
 
 > **Status: early release (October 2026).** It's adapted from the system SAIFbio uses day to day, but expect rough edges. Bug reports, setup problems and ideas are welcome in [GitHub Issues](https://github.com/nralston-saif/501cFREE/issues).
 
-> **Try it in one minute:** `git clone https://github.com/nralston-saif/501cFREE.git && cd 501cFREE && pnpm install && pnpm dev`, then open http://localhost:3000. With no database configured, the app runs in **demo mode** with fictional sample data and no login.
+> **Try it in one minute:** `git clone https://github.com/nralston-saif/501cFREE.git && cd 501cFREE && pnpm install && pnpm dev`, then open http://localhost:3000. With no database configured, the app runs in **demo mode**: fictional sample data, no login, and pre-written sample results for the AI features, so it also works as a public sandbox (data resets every few hours).
 
 ## What it does
 
@@ -69,12 +69,12 @@ Then open **Settings** to enter your organization's legal name, EIN, address and
 
 Only people on your team list can sign in. There are no public sign-ups. There are two roles:
 
-- **Admin:** everything, including expenses, banking and QuickBooks, reports and exports, team management, settings, the audit log, making grant awards and paying them.
+- **Admin:** everything, including expenses, banking and QuickBooks, reports and exports, team management, settings, making grant awards and paying them.
 - **Staff:** everything else, including organizations, people, notes, meetings, tickets, donations, proposals, awards paperwork and PRIs.
 
 Voting on, advancing and deciding grant proposals is for everyone on the team by default; **Settings → Organization → Grant review** can limit it to admins.
 
-These rules are enforced in the database with row-level security and triggers, not only in the app: blind voting, admin-only payments, locked letters and the PRI funding checks hold even for someone calling the Supabase API directly. Every change made by a team member is recorded in an audit log that admins can read.
+These rules are enforced in the database with row-level security and triggers, not only in the app: blind voting, admin-only payments, locked letters and the PRI funding checks hold even for someone calling the Supabase API directly.
 
 ## Development
 

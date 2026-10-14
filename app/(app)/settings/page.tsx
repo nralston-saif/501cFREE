@@ -1,5 +1,4 @@
 import { Suspense } from 'react'
-import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getAuthState } from '@/lib/auth'
@@ -107,18 +106,6 @@ export default async function SettingsPage({
         </Suspense>
 
         <TeamCard members={members} currentMemberId={memberId} />
-
-        <div className="card p-6 flex items-center justify-between gap-3">
-          <div>
-            <h2 className="font-medium text-gray-900">Team activity</h2>
-            <p className="text-sm text-gray-400">
-              Sign-ins and changes by admins and staff
-            </p>
-          </div>
-          <Link href="/settings/activity" className="btn btn-primary text-sm whitespace-nowrap">
-            View log
-          </Link>
-        </div>
 
         <div>
           <AttachmentsPanel

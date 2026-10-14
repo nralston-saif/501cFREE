@@ -7,6 +7,7 @@ import { useToast } from '@/components/Toast'
 import { formatDate } from '@/lib/utils/dates'
 import { unwrap } from '@/lib/actions/result'
 import { withBasePath } from '@/lib/basePath'
+import DemoAiBadge from '@/components/DemoAiBadge'
 
 /**
  * The response email for a declined proposal. Auto-drafts via the AI route on
@@ -18,11 +19,14 @@ export default function ResponseEmailPanel({
   draft,
   sentAt,
   aiEnabled,
+  demoAi = false,
 }: {
   proposalId: string
   draft: string | null
   sentAt: string | null
   aiEnabled: boolean
+  /** Drafts come from demo mode's scripted provider (lib/ai/demo.ts) */
+  demoAi?: boolean
 }) {
   const [text, setText] = useState(draft ?? '')
   const [generating, setGenerating] = useState(false)
@@ -109,7 +113,10 @@ export default function ResponseEmailPanel({
 
   return (
     <div className="card p-5">
-      <h3 className="font-medium text-gray-900 mb-1">Response email</h3>
+      <div className="mb-1 flex flex-wrap items-center gap-2">
+        <h3 className="font-medium text-gray-900">Response email</h3>
+        {demoAi && <DemoAiBadge />}
+      </div>
       <p className="text-sm text-gray-500 mb-3">
         AI-drafted reply to the applicant. Edit as needed, copy it into your email client, then
         mark it sent.

@@ -18,6 +18,7 @@ import PriMemoPdfPanel from './PriMemoPdfPanel'
 import PriStatusSelect from './PriStatusSelect'
 import MarkFundedForm from './MarkFundedForm'
 import PriResearchPanel from './PriResearchPanel'
+import { isAiAvailable } from '@/lib/ai/demo'
 import type { PriMemoKey } from '@/lib/pris/memo'
 import ActionForm from '@/components/ActionForm'
 
@@ -100,7 +101,7 @@ export default async function PriPage({ params }: { params: Promise<{ id: string
 
   const revalidatePath = `/pris/${pri.id}`
 
-  const researchEnabled = Boolean(process.env.ANTHROPIC_API_KEY)
+  const researchEnabled = isAiAvailable()
   // Latest completed research → per-question draft map for the memo editor
   let researchDraft: Partial<Record<PriMemoKey, string>> | null = null
   if (research?.status === 'complete' && typeof research.draft === 'object' && research.draft) {

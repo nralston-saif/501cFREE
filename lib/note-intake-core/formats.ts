@@ -47,6 +47,8 @@ const RESAVE: Record<string, string> = {
 
 export const MAX_FILE_BYTES = 20 * 1024 * 1024
 export const MAX_FILES_PER_INTAKE = 10
+/** Demo mode stages files through a server action, whose body limit is 10 MB */
+export const DEMO_STAGE_MAX_BYTES = 8 * 1024 * 1024
 
 /** Value for <input type="file" accept>. */
 export const ACCEPT_ATTR = Object.keys(FORMATS)

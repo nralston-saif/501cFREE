@@ -9,6 +9,8 @@ import SubmitButton from '@/components/SubmitButton'
 import { formatDate, formatTimestamp } from '@/lib/utils/dates'
 import type { Expense } from '@/lib/supabase/types/database'
 import ActionForm from '@/components/ActionForm'
+import QuickBooksDemoNote from '@/components/QuickBooksDemoNote'
+import { isDemoMode } from '@/lib/supabase/demo/mock-client'
 
 const badgeClass = 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium'
 
@@ -30,6 +32,15 @@ function Shell({ badge, children }: { badge: React.ReactNode; children: React.Re
  * and are matched in Banking, and the app fills in their details.
  */
 export default async function QboSyncPanel({ expense }: { expense: Expense }) {
+  if (isDemoMode()) {
+    return (
+      <Shell badge={null}>
+        <div className="mt-2">
+          <QuickBooksDemoNote compact />
+        </div>
+      </Shell>
+    )
+  }
   const connection = await getConnection()
   if (!connection) return null
 

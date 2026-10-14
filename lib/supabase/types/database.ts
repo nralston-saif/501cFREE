@@ -108,19 +108,6 @@ type TimestampedRow = {
 
 export type TeamMemberRole = 'admin' | 'staff'
 
-export type AuditEvent = {
-  id: string
-  occurred_at: string
-  actor_member_id: string | null
-  actor_email: string | null
-  actor_role: string | null
-  event_type: string
-  entity_type: string | null
-  entity_id: string | null
-  summary: string | null
-  metadata: Record<string, unknown>
-}
-
 export type TeamMember = TimestampedRow & {
   id: string
   auth_user_id: string | null
@@ -721,7 +708,6 @@ type TableDef<Row, Required extends keyof Row = never> = {
 export type Database = {
   public: {
     Tables: {
-      audit_log: TableDef<AuditEvent, 'event_type'>
       team_members: TableDef<TeamMember, 'email' | 'full_name'>
       org_settings: TableDef<OrgSettings, never>
       program_areas: TableDef<ProgramArea, 'slug' | 'label'>

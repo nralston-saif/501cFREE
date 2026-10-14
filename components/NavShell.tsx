@@ -50,7 +50,7 @@ const NAV_ITEMS: NavEntry[] = [
     ],
   },
 ]
-// Settings (org settings, QuickBooks, team, activity log, governance —
+// Settings (org settings, QuickBooks, team, governance —
 // admins only), Account and Sign out live in the profile menu.
 
 function ChevronDown({ open }: { open: boolean }) {

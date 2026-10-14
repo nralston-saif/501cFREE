@@ -6,7 +6,7 @@
  *   order / limit / range / single / maybeSingle / insert / update / upsert / delete,
  * plus rpc() for the database functions listed in DEMO_FUNCTIONS (results
  * support the same filters, order and range), auth.getUser/signOut and
- * storage upload/download/remove/createSignedUrl.
+ * storage upload/download/remove/createSignedUrl(s).
  *
  * Embedded resources are resolved only when they name the foreign-key
  * column with a `!hint`: `contact:contacts!contact_id(display_name)` (the
@@ -138,6 +138,30 @@ function resolveEmbeds(rows: Row[], columns: string): Row[] {
     }
   }
   return rows
+}
+
+/**
+ * Column defaults the app relies on after an insert that omits them (the
+ * migrations' `default` clauses); Postgres fills these in, the mock doesn't.
+ */
+const COLUMN_DEFAULTS: Record<string, () => Row> = {
+  contacts: () => ({
+    is_donor: false,
+    is_grantee: false,
+    is_funder: false,
+    is_vendor: false,
+    is_lead: false,
+    alternative_emails: [],
+    previous_names: [],
+    tags: [],
+    w9_on_file: false,
+    is_active: true,
+  }),
+  note_intakes: () => ({ status: 'uploading', note_ids: [], proposal: null, draft: null, model: null, error: null }),
+  tickets: () => ({ status: 'open', priority: 'medium', tags: [], is_flagged: false }),
+  grant_proposals: () => ({ program_areas: [] }),
+  expenses: () => ({ status: 'paid', is_1099_eligible: false, qbo_source: 'app', qbo_sync_status: 'not_synced' }),
+  qbo_inbox: () => ({ kind: 'new', status: 'pending', qbo_line_account_ids: [], first_seen_at: new Date().toISOString() }),
 }
 
 function compare(a: unknown, b: unknown): number {
@@ -324,7 +348,13 @@ class DemoQueryBuilder implements PromiseLike<Result> {
 
   private newRow(input: Row): Row {
     const now = new Date().toISOString()
-    return this.withGenerated({ id: crypto.randomUUID(), created_at: now, updated_at: now, ...input })
+    return this.withGenerated({
+      id: crypto.randomUUID(),
+      created_at: now,
+      updated_at: now,
+      ...COLUMN_DEFAULTS[this.table]?.(),
+      ...input,
+    })
   }
 
   // Emulates generated columns that a real Postgres would compute
@@ -422,6 +452,20 @@ const demoUser = {
   role: 'authenticated',
 }
 
+/** Uploads a public demo keeps in memory, in total; the oldest go first */
+const DEMO_FILES_MAX_BYTES = 200 * 1024 * 1024
+
+function capDemoFiles(files: Map<string, { bytes: Uint8Array }>) {
+  let total = 0
+  for (const file of files.values()) total += file.bytes.byteLength
+  // Maps iterate in insertion order: oldest first. Keep the newest file.
+  for (const [k, file] of files) {
+    if (total <= DEMO_FILES_MAX_BYTES || files.size <= 1) break
+    files.delete(k)
+    total -= file.bytes.byteLength
+  }
+}
+
 function demoStorageBucket(bucket: string) {
   const store = getDemoStore()
   const key = (path: string) => `${bucket}/${path}`
@@ -437,6 +481,7 @@ function demoStorageBucket(bucket: string) {
         if (blob.type) contentType = options?.contentType ?? blob.type
       }
       store.files.set(key(path), { bytes, contentType })
+      capDemoFiles(store.files)
       return { data: { path }, error: null }
     },
     async download(path: string) {
@@ -449,6 +494,16 @@ function demoStorageBucket(bucket: string) {
     async remove(paths: string[]) {
       paths.forEach((path) => store.files.delete(key(path)))
       return { data: null, error: null }
+    },
+    async createSignedUrls(paths: string[]) {
+      return {
+        data: paths.map((path) =>
+          store.files.has(key(path))
+            ? { path, signedUrl: withBasePath(`/api/demo-files?key=${encodeURIComponent(key(path))}`), error: null }
+            : { path, signedUrl: null, error: 'File not found (demo files reset on restart)' }
+        ),
+        error: null,
+      }
     },
     // Demo URLs never expire, so the expiresIn argument is accepted and ignored.
     async createSignedUrl(path: string) {

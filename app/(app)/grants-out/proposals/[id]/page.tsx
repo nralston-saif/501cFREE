@@ -15,6 +15,7 @@ import { loadWeighedIn } from '@/lib/grants/review-progress'
 import { isVotingMember, votingBodyPhrase } from '@/lib/grants/voting'
 import { getOrgSettings } from '@/lib/settings'
 import { isDeclineEmailEnabled } from '@/lib/grants/decline-email'
+import { isScriptedAi } from '@/lib/ai/demo'
 import PageHeader from '@/components/PageHeader'
 import StatusBadge from '@/components/StatusBadge'
 import SubmitButton from '@/components/SubmitButton'
@@ -266,6 +267,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
               draft={proposal.draft_response_email}
               sentAt={proposal.response_email_sent_at}
               aiEnabled={isDeclineEmailEnabled()}
+              demoAi={isScriptedAi()}
             />
           )}
 

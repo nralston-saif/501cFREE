@@ -296,6 +296,7 @@ export default async function ContributionDetailPage({
             }
             hasEmail={Boolean(contact?.email)}
             emailEnabled={isDemoMode() || isEmailConfigured()}
+            emailDemo={isDemoMode()}
           />
           <AttachmentsPanel
             entityType="contribution"

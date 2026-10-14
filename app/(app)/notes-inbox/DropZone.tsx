@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation'
 import {
   ACCEPT_ATTR,
   ACCEPTED_LABEL,
+  DEMO_STAGE_MAX_BYTES,
   MAX_FILES_PER_INTAKE,
   checkFile,
   storagePathFor,
 } from '@/lib/note-intake-core'
 import { createClient } from '@/lib/supabase/client'
-import { createNoteIntake } from '@/lib/actions/note-intake'
+import { createNoteIntake, stageNoteIntakeFile } from '@/lib/actions/note-intake'
 import { withBasePath } from '@/lib/basePath'
 
 type Staged = { key: string; file: File; mime: string }
@@ -24,8 +25,10 @@ function formatSize(bytes: number): string {
 // Files collect here (drop or choose, as many times as needed) and nothing
 // uploads until the user submits. Then: create an intake → upload each file
 // straight to the note-files bucket under the viewer's session (no server
-// body-size cap) → kick off Claude → go to the review page.
-export default function DropZone() {
+// body-size cap) → kick off Claude → go to the review page. In demo mode
+// (`stageOnServer`) each file goes through the stageNoteIntakeFile action
+// instead, into the in-memory demo store.
+export default function DropZone({ stageOnServer = false }: { stageOnServer?: boolean }) {
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = useState(false)
@@ -46,6 +49,8 @@ export default function DropZone() {
       const check = checkFile(file.name, file.size)
       if (!check.ok) {
         newlyRejected.push({ key: `${key}:${Math.random()}`, name: file.name, reason: check.reason })
+      } else if (stageOnServer && file.size > DEMO_STAGE_MAX_BYTES) {
+        newlyRejected.push({ key: `${key}:${Math.random()}`, name: file.name, reason: 'The demo takes files up to 8 MB.' })
       } else if (next.length >= MAX_FILES_PER_INTAKE) {
         newlyRejected.push({ key: `${key}:${Math.random()}`, name: file.name, reason: `Up to ${MAX_FILES_PER_INTAKE} files per upload.` })
       } else {
@@ -68,6 +73,13 @@ export default function DropZone() {
 
       for (const [i, { file, mime }] of staged.entries()) {
         setProgress(`Uploading ${i + 1} of ${staged.length}: ${file.name}`)
+        if (stageOnServer) {
+          const body = new FormData()
+          body.set('file', file)
+          const staged = await stageNoteIntakeFile(intakeId, body)
+          if (!staged.ok) throw new Error(staged.error)
+          continue
+        }
         const path = storagePathFor(intakeId, file.name, crypto.randomUUID())
         const { error: rowError } = await supabase.from('note_intake_files').insert({
           intake_id: intakeId,

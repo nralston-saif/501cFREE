@@ -13,7 +13,7 @@ export type AccountActionState = { error: string | null; ok: boolean }
  * Self-serve password change: verify the current password (a throwaway
  * sign-in against the auth API — updateUser alone would let a hijacked
  * session set a new password without knowing the old one), then set the new
- * one via the admin API and log a password_change audit event.
+ * one via the admin API.
  */
 export async function changePasswordAction(
   _prev: AccountActionState,
@@ -46,7 +46,7 @@ export async function changePasswordAction(
     const supabase = await createClient()
     const { data: member } = await supabase
       .from('team_members')
-      .select('email, role')
+      .select('email')
       .eq('id', memberId)
       .single()
     if (!member?.email) {
@@ -74,15 +74,6 @@ export async function changePasswordAction(
     if (updateError) {
       throw new ActionError(`Could not update the password: ${updateError.message}`)
     }
-
-    // The session triggers only see logins/logouts; record the change itself
-    await admin.from('audit_log').insert({
-      actor_member_id: memberId,
-      actor_email: member.email,
-      actor_role: (member as { role?: string }).role ?? null,
-      event_type: 'password_change',
-      entity_type: 'account',
-    })
 
     return { error: null, ok: true }
   } catch (err) {
@@ -144,12 +135,6 @@ export async function setPasswordAction(
       )
     }
 
-    const { data: member } = await supabase
-      .from('team_members')
-      .select('email, role')
-      .eq('id', memberId)
-      .single()
-
     const admin = createAdminClient()
     const { error: updateError } = await admin.auth.admin.updateUserById(userId, {
       password: next,
@@ -157,14 +142,6 @@ export async function setPasswordAction(
     if (updateError) {
       throw new ActionError(`Could not set the password: ${updateError.message}`)
     }
-
-    await admin.from('audit_log').insert({
-      actor_member_id: memberId,
-      actor_email: member?.email ?? null,
-      actor_role: (member as { role?: string } | null)?.role ?? null,
-      event_type: 'password_set',
-      entity_type: 'account',
-    })
 
     return { error: null, ok: true }
   } catch (err) {
