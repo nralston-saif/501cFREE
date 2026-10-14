@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { readFileSync, existsSync } from 'node:fs'
+import { dirname, join, resolve } from 'node:path'
 import {
   addDays,
+  demoAmountDollars,
+  grantResearchReport,
+  priResearchReport,
+  toDemoOrg,
   scriptedDeclineEmail,
   scriptedGrantResearch,
   scriptedInvoiceExtraction,
@@ -10,12 +16,12 @@ import {
   type DemoContact,
 } from './demo-scripts'
 import type { AiOrgContext } from './org-context'
-import { DEMO_AI_MODEL, isAiAvailable, isScriptedAi } from './demo'
-import { MEMO_SECTION_FIELDS } from '@/lib/grants/memo'
+import { isAiAvailable, isAiConfigured, isScriptedAi } from './demo'
+import { MEMO_HEADER_FIELDS, MEMO_SECTION_FIELDS } from '@/lib/grants/memo'
 import { PRI_MEMO_FIELDS } from '@/lib/pris/memo'
-import { runGrantResearch } from '@/lib/grants/research'
-import { runPriResearch } from '@/lib/pris/research'
-import { generateDeclineEmail } from '@/lib/grants/decline-email'
+import { isGrantResearchEnabled } from '@/lib/grants/research'
+import { isPriResearchEnabled } from '@/lib/pris/research'
+import { isDeclineEmailEnabled } from '@/lib/grants/decline-email'
 import { isNoteIntakeEnabled } from '@/lib/note-intake-core/config'
 import { isInvoiceExtractionEnabled } from '@/lib/invoices/extract'
 
@@ -222,27 +228,114 @@ describe('scriptedNoteIntake', () => {
   })
 })
 
-describe('when the scripted provider runs', () => {
-  afterEach(() => {
-    vi.unstubAllEnvs()
-    vi.useRealTimers()
-  })
-
-  function demoWithoutKey() {
-    vi.stubEnv('NEXT_PUBLIC_USE_SUPABASE', '')
-    vi.stubEnv('ANTHROPIC_API_KEY', '')
+describe('demo research reports (rendered in the browser)', () => {
+  const grantInput = {
+    applicantName: 'Riverbend Readers',
+    title: 'Summer reading corps',
+    summary: null,
+    programAreaLabels: ['Early literacy'],
+    amountDollars: demoAmountDollars(5_000_000),
+    org: toDemoOrg(ORG),
+  }
+  const priInput = {
+    recipientName: 'Brightpath Tools, PBC',
+    instrumentLabel: 'SAFE',
+    amountDollars: demoAmountDollars(20_000_000),
+    purpose: null,
+    org: toDemoOrg(ORG),
   }
 
-  it('runs in demo mode without a key, not with a key or outside demo mode', () => {
-    demoWithoutKey()
+  it('lays out every grant memo section, in print order, with header, sources and questions', () => {
+    const report = grantResearchReport(grantInput)
+    expect(report).toEqual(grantResearchReport(grantInput))
+    expect(report.sections.map((s) => s.label)).toEqual(MEMO_SECTION_FIELDS.map(([, label]) => label))
+    expect(report.sections.every((s) => s.answer.length > 40)).toBe(true)
+    expect(report.sections[0].answer).toContain('Riverbend Readers requests $50,000 for "Summer reading corps"')
+    const headerLabels = MEMO_HEADER_FIELDS.map(([, label]) => label)
+    expect(report.header?.map((h) => h.label)).toEqual(headerLabels.filter((l) => l !== 'Decision'))
+    expect(report.header?.find((h) => h.label === 'Purpose')?.value).toBe('Support of "Summer reading corps"')
+    expect(report.sources).toHaveLength(3)
+    expect(report.sources.every((s) => s.url.startsWith('https://example.org/'))).toBe(true)
+    expect(report.open_questions.length).toBeGreaterThan(0)
+  })
+
+  it('lays out every PRI memo question with sources and questions', () => {
+    const report = priResearchReport(priInput)
+    expect(report).toEqual(priResearchReport(priInput))
+    expect(report.header).toBeUndefined()
+    expect(report.sections.map((s) => s.label)).toEqual(PRI_MEMO_FIELDS.map(([, label]) => label))
+    expect(report.sections.find((s) => s.label.startsWith('Key terms'))?.answer).toContain('SAFE, $200,000.')
+    expect(report.sources.every((s) => s.url.startsWith('https://example.org/'))).toBe(true)
+  })
+
+  it('formats amounts like the research routes and keeps only the organization facts the scripts use', () => {
+    expect(demoAmountDollars(123_456_78)).toBe('123,456.78')
+    expect(demoAmountDollars(null)).toBe('not specified')
+    expect(toDemoOrg(ORG)).toEqual({
+      name: 'Example Literacy Fund',
+      mission: 'Helping every child become a confident reader.',
+      programAreas: [{ label: 'Early literacy' }, { label: 'Family engagement' }],
+    })
+  })
+})
+
+describe('demo-scripts is client-safe', () => {
+  // The demo panels import it into client components: everything it reaches
+  // must be pure (type-only imports are erased and don't count).
+  const root = resolve(__dirname, '../..')
+  const FORBIDDEN = /^(server-only|next(\/|$)|react-dom\/server|@anthropic-ai\/|@supabase\/|node:|fs$|path$|crypto$|sharp$|mammoth$|xlsx$)/
+
+  function resolveImport(from: string, spec: string): string | null {
+    const base = spec.startsWith('@/') ? join(root, spec.slice(2)) : spec.startsWith('.') ? resolve(dirname(from), spec) : null
+    if (!base) return null
+    for (const candidate of [`${base}.ts`, `${base}.tsx`, join(base, 'index.ts')]) {
+      if (existsSync(candidate)) return candidate
+    }
+    throw new Error(`Can't resolve ${spec} from ${from}`)
+  }
+
+  it('reaches only pure modules', () => {
+    const seen = new Set<string>()
+    const external: string[] = []
+    const visit = (file: string) => {
+      if (seen.has(file)) return
+      seen.add(file)
+      const source = readFileSync(file, 'utf8')
+      expect(source).not.toMatch(/['"]use server['"]/)
+      for (const m of source.matchAll(/^(?:import|export)\s+(type\s+)?[^'"]*?from\s+['"]([^'"]+)['"]/gm)) {
+        if (m[1]) continue
+        const target = resolveImport(file, m[2])
+        if (target) visit(target)
+        else external.push(m[2])
+      }
+    }
+    visit(join(root, 'lib/ai/demo-scripts.ts'))
+    expect(external.filter((spec) => FORBIDDEN.test(spec))).toEqual([])
+    expect(external).toEqual([])
+  })
+})
+
+describe('which path the AI features take', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('shows in-browser samples in demo mode without a key; the server only calls Claude with a key', () => {
+    vi.stubEnv('NEXT_PUBLIC_USE_SUPABASE', '')
+    vi.stubEnv('ANTHROPIC_API_KEY', '')
     expect(isScriptedAi()).toBe(true)
     expect(isAiAvailable()).toBe(true)
-    expect(isNoteIntakeEnabled()).toBe(true)
-    expect(isInvoiceExtractionEnabled()).toBe(true)
+    expect(isAiConfigured()).toBe(false)
+    for (const enabled of [isGrantResearchEnabled, isPriResearchEnabled, isDeclineEmailEnabled, isNoteIntakeEnabled, isInvoiceExtractionEnabled]) {
+      expect(enabled()).toBe(false)
+    }
 
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test')
     expect(isScriptedAi()).toBe(false)
     expect(isAiAvailable()).toBe(true)
+    expect(isGrantResearchEnabled()).toBe(true)
+    expect(isNoteIntakeEnabled()).toBe(true)
+    expect(isInvoiceExtractionEnabled()).toBe(true)
 
     vi.stubEnv('ANTHROPIC_API_KEY', '')
     vi.stubEnv('NEXT_PUBLIC_USE_SUPABASE', 'true')
@@ -251,55 +344,5 @@ describe('when the scripted provider runs', () => {
     expect(isAiAvailable()).toBe(false)
     expect(isNoteIntakeEnabled()).toBe(false)
     expect(isInvoiceExtractionEnabled()).toBe(false)
-  })
-
-  it('answers the feature modules after a short delay, labelled as demo output', async () => {
-    demoWithoutKey()
-    vi.useFakeTimers()
-    const research = runGrantResearch({
-      applicantName: 'Riverbend Readers',
-      title: 'Summer reading corps',
-      summary: null,
-      programAreaLabels: [],
-      amountDollars: '50,000',
-      receivedDate: null,
-      source: null,
-      crmContext: null,
-      attachment: null,
-      org: ORG,
-    })
-    const pri = runPriResearch({
-      recipientName: 'Brightpath Tools, PBC',
-      instrumentLabel: 'SAFE',
-      amountDollars: '200,000',
-      purpose: null,
-      notes: null,
-      investmentDate: null,
-      crmContext: null,
-      attachment: null,
-      org: ORG,
-    })
-    const decline = generateDeclineEmail(
-      {
-        applicantName: 'Pat Marlow',
-        organizationName: null,
-        title: 'Billboards',
-        summary: null,
-        programAreaLabels: [],
-        amountDollars: null,
-        declinedStage: 'review',
-        decisionNotes: null,
-        reviewerComments: [],
-      },
-      ORG
-    )
-    await vi.advanceTimersByTimeAsync(2_000)
-    const [r, p, d] = await Promise.all([research, pri, decline])
-    expect(r.model).toBe(DEMO_AI_MODEL)
-    expect(r.draft.header.header_purpose).toBe('Support of "Summer reading corps"')
-    expect(p.model).toBe(DEMO_AI_MODEL)
-    expect(Object.keys(p.draft.answers)).toHaveLength(PRI_MEMO_FIELDS.length)
-    expect(d.model).toBe(DEMO_AI_MODEL)
-    expect(d.email).toContain('Dear Pat,')
   })
 })

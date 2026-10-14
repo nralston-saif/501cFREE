@@ -3,6 +3,7 @@ import { getAuthState } from '@/lib/auth'
 import { isDemoMode } from '@/lib/supabase/demo/mock-client'
 import { isScriptedAi } from '@/lib/ai/demo'
 import NavShell from '@/components/NavShell'
+import { REPO_URL } from '@/lib/branding'
 
 export default async function AppLayout({
   children,
@@ -26,11 +27,19 @@ export default async function AppLayout({
     <NavShell isAdmin={isAdmin} userName={memberName}>
       {isDemoMode() && (
         <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
-          <span className="font-semibold">Public demo sandbox.</span> Fictional sample data that
-          anyone can view and change. It resets every few hours, so nothing you enter is kept.
-          Don&rsquo;t enter real personal data.{' '}
-          {isScriptedAi() ? 'AI results are pre-written samples, and email' : 'Email'} and QuickBooks
-          are switched off.
+          <span className="font-semibold">Public demo with fictional sample data.</span> Explore
+          freely — this demo doesn&rsquo;t save changes.{' '}
+          {isScriptedAi()
+            ? 'AI results are pre-written samples; email and QuickBooks are switched off.'
+            : 'Email and QuickBooks are switched off.'}{' '}
+          <a
+            href={REPO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="whitespace-nowrap font-medium underline hover:text-amber-900"
+          >
+            Get the code on GitHub &rarr;
+          </a>
         </div>
       )}
       {children}

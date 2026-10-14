@@ -1,4 +1,4 @@
-import { isAiAvailable } from '@/lib/ai/demo'
+import { isAiConfigured } from '@/lib/ai/demo'
 
 // The lightweight half of the notes-inbox pipeline: safe to import from any
 // page. The Claude pipeline itself (Anthropic SDK, sharp, mammoth, xlsx)
@@ -6,13 +6,13 @@ import { isAiAvailable } from '@/lib/ai/demo'
 // dynamic import, so pages never trace or bundle those libraries.
 
 /**
- * On with ANTHROPIC_API_KEY, or in demo mode with the scripted provider
- * (lib/ai/demo.ts). In demo mode the drop zone stages files through the
- * stageNoteIntakeFile server action into the demo store, since the browser
- * Supabase client is a stub there.
+ * On with ANTHROPIC_API_KEY. In demo mode with a key the drop zone stages
+ * files through the stageNoteIntakeFile server action into the demo store,
+ * since the browser Supabase client is a stub there. Demo mode without a key
+ * shows sample notes made in the browser instead (lib/ai/demo.ts).
  */
 export function isNoteIntakeEnabled(): boolean {
-  return isAiAvailable()
+  return isAiConfigured()
 }
 
 /** A failure whose message is safe to show the uploader */

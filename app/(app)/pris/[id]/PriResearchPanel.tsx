@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/Toast'
 import { withBasePath } from '@/lib/basePath'
 import { formatDate } from '@/lib/utils/dates'
-import { DEMO_AI_MODEL } from '@/lib/ai/demo-label'
-import DemoAiBadge from '@/components/DemoAiBadge'
+import DemoResearchPanel from '@/components/DemoResearchPanel'
+import { priResearchReport, type DemoPriResearchInput } from '@/lib/ai/demo-scripts'
 import type { PriResearch } from '@/lib/supabase/types/database'
 
 interface Source {
@@ -29,7 +29,34 @@ function parseOpenQuestions(raw: PriResearch['open_questions']): string[] {
   return raw.filter((q): q is string => typeof q === 'string')
 }
 
+const DESCRIPTION =
+  'Sends a research agent to read the web (and the attached instrument, if uploaded) and draft all ten memo answers with sources. You review, edit, and approve — the AI never fills the memo directly.'
+
 export default function PriResearchPanel({
+  priId,
+  research,
+  recipientName,
+  demoInput = null,
+}: {
+  priId: string
+  research: PriResearch | null
+  recipientName: string
+  /** Demo mode without a key: show the pre-written sample, built in the browser */
+  demoInput?: DemoPriResearchInput | null
+}) {
+  if (demoInput) {
+    return (
+      <DemoResearchPanel
+        subjectName={recipientName}
+        description={DESCRIPTION}
+        build={() => priResearchReport(demoInput)}
+      />
+    )
+  }
+  return <LivePriResearchPanel priId={priId} research={research} recipientName={recipientName} />
+}
+
+function LivePriResearchPanel({
   priId,
   research,
   recipientName,
@@ -69,7 +96,6 @@ export default function PriResearchPanel({
       <div className="flex items-center justify-between mb-2 gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="font-medium text-gray-900">AI research</h3>
-          {research?.status === 'complete' && research.model === DEMO_AI_MODEL && <DemoAiBadge />}
         </div>
         <button
           type="button"
@@ -137,11 +163,7 @@ export default function PriResearchPanel({
           Last run failed: {research.error ?? 'unknown error'}. Try again.
         </p>
       ) : (
-        <p className="text-sm text-gray-500">
-          Sends a research agent to read the web (and the attached instrument, if uploaded) and
-          draft all ten memo answers with sources. You review, edit, and approve — the AI never
-          fills the memo directly.
-        </p>
+        <p className="text-sm text-gray-500">{DESCRIPTION}</p>
       )}
     </div>
   )

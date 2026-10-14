@@ -1,8 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { DeclinedStage } from '@/lib/supabase/types/database'
 import { FALLBACK_MODEL, RESEARCH_MODEL } from '@/lib/ai/models'
-import { DEMO_AI_MODEL, demoAiDelay, isAiAvailable, isScriptedAi } from '@/lib/ai/demo'
-import { scriptedDeclineEmail } from '@/lib/ai/demo-scripts'
+import { isAiConfigured } from '@/lib/ai/demo'
 import { organizationBlock, type AiOrgContext } from '@/lib/ai/org-context'
 
 // Drafts the response email to a declined grant applicant. The draft lands in
@@ -27,9 +26,9 @@ export interface DeclineEmailInput {
   reviewerComments: string[]
 }
 
-/** A key, or demo mode's scripted provider (lib/ai/demo.ts) */
+/** ANTHROPIC_API_KEY is set (demo mode's samples run in the browser, see lib/ai/demo.ts) */
 export function isDeclineEmailEnabled(): boolean {
-  return isAiAvailable()
+  return isAiConfigured()
 }
 
 // Internal notes go in the user turn (facts about this proposal), never here.
@@ -98,10 +97,6 @@ export async function generateDeclineEmail(
   org: AiOrgContext
 ): Promise<DeclineEmailResult> {
   if (!isDeclineEmailEnabled()) throw new Error('ANTHROPIC_API_KEY is not configured')
-  if (isScriptedAi()) {
-    await demoAiDelay(input.title)
-    return { email: scriptedDeclineEmail(input, org), model: DEMO_AI_MODEL }
-  }
   const client = new Anthropic()
 
   const run = (model: string) =>

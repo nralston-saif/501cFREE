@@ -5,7 +5,8 @@ Notable changes to 501(c)(FREE). Each release lists any new database migrations:
 ## Unreleased
 - AI routes are capped at 300 seconds (Vercel Hobby's limit) so the app deploys on the free plan; on a paid plan raise the research routes to 800 seconds for full-length research (see docs/setup.md).
 - The QuickBooks pull now runs daily by default, so the app deploys on Vercel's free Hobby plan (which only allows daily jobs). On a paid plan, set its schedule in `vercel.json` to `*/30 * * * *`; **Sync now** pulls immediately either way.
-- Demo mode works as a public sandbox: AI features return labelled sample output without an API key, the notes inbox works in demo, QuickBooks shows how the integration works instead of connecting, Banking has sample items to review, and demo data resets every 6 hours.
+- Demo mode works as a public demo: QuickBooks shows how the integration works instead of connecting, and Banking has sample items to review.
+- Demo mode without an API key shows the AI features' pre-written samples entirely in the browser (grant and PRI research, decline email, notes inbox, bulk invoice upload), so they work on the hosted demo where server memory isn't shared between requests; nothing is saved. The demo banner now says the demo doesn't save changes and links to the code on GitHub (`NEXT_PUBLIC_REPO_URL` points it at a fork).
 
 - Removed the activity log (Settings → Activity). The app no longer records team members' sign-ins, sign-outs or record changes; the `audit_log` table, its triggers and its trigger functions are dropped, along with any events already recorded.
 

@@ -7,17 +7,47 @@ import type { NoteIntakeStatus } from '@/lib/supabase/types/database'
 import { isNoteIntakeEnabled } from '@/lib/note-intake-core/config'
 import { isDemoMode } from '@/lib/supabase/demo/mock-client'
 import { isScriptedAi } from '@/lib/ai/demo'
-import DemoAiBadge from '@/components/DemoAiBadge'
+import type { DemoContact, DemoRecord } from '@/lib/ai/demo-scripts'
+import { listLinkableRecords } from '@/lib/note-intake/context'
+import { getOrgSettings } from '@/lib/settings'
+import { todayInTimeZone } from '@/lib/utils/dates'
 import DropZone from './DropZone'
+import DemoNotesInbox from './DemoNotesInbox'
 import { IntakeStatusBadge } from './IntakeStatusBadge'
 
 export const dynamic = 'force-dynamic'
 
+const DESCRIPTION =
+  "Drop in meeting notes in any common format, including photos of handwritten pages. Claude writes them up and suggests which contacts, grants and PRIs they belong on. You review everything before it's saved."
+
 // Notes inbox: drop files, Claude proposes formatted notes and where they go,
 // a person reviews and files them.
 export default async function NotesInboxPage() {
-  const { memberId } = await getAuthState()
   const supabase = await createClient()
+  // Demo mode without a key: sample notes built in the browser, nothing uploaded or saved
+  if (isScriptedAi()) {
+    const [{ data: contactRows }, records, settings] = await Promise.all([
+      supabase
+        .from('contacts')
+        .select('id, kind, display_name')
+        .eq('is_active', true)
+        .eq('is_vendor', false)
+        .order('display_name')
+        .limit(100),
+      listLinkableRecords(supabase).catch(() => []),
+      getOrgSettings(supabase),
+    ])
+    const contacts: DemoContact[] = (contactRows ?? []).map((c) => ({ id: c.id, kind: c.kind, name: c.display_name }))
+    const demoRecords: DemoRecord[] = records.map((r) => ({ id: r.id, type: r.type, label: r.label }))
+    return (
+      <div>
+        <PageHeader title="Notes inbox" description={DESCRIPTION} />
+        <DemoNotesInbox contacts={contacts} records={demoRecords} today={todayInTimeZone(settings.timezone)} />
+      </div>
+    )
+  }
+
+  const { memberId } = await getAuthState()
   const { data } = memberId
     ? await supabase
         .from('note_intakes')
@@ -38,17 +68,7 @@ export default async function NotesInboxPage() {
 
   return (
     <div>
-      <PageHeader
-        title="Notes inbox"
-        description="Drop in meeting notes in any common format, including photos of handwritten pages. Claude writes them up and suggests which contacts, grants and PRIs they belong on. You review everything before it's saved."
-      />
-      {isScriptedAi() && (
-        <p className="mb-4 flex flex-wrap items-center gap-2 text-sm text-gray-600">
-          <DemoAiBadge />
-          In this demo the files aren&rsquo;t read: any drop gets sample notes linked to the demo
-          contacts, for you to review and file like real ones. Files up to 8 MB.
-        </p>
-      )}
+      <PageHeader title="Notes inbox" description={DESCRIPTION} />
       {isNoteIntakeEnabled() ? (
         <DropZone stageOnServer={isDemoMode()} />
       ) : (

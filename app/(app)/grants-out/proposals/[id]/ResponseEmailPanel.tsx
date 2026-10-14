@@ -8,26 +8,113 @@ import { formatDate } from '@/lib/utils/dates'
 import { unwrap } from '@/lib/actions/result'
 import { withBasePath } from '@/lib/basePath'
 import DemoAiBadge from '@/components/DemoAiBadge'
+import DemoSampleNote from '@/components/DemoSampleNote'
+import { useDemoRun } from '@/components/useDemoRun'
+import { DEMO_DELAY_MS, DEMO_NOTES } from '@/lib/ai/demo-label'
+import { scriptedDeclineEmail, type DemoDeclineInput, type DemoOrg } from '@/lib/ai/demo-scripts'
 
-/**
- * The response email for a declined proposal. Auto-drafts via the AI route on
- * first view, then lets the team edit, copy, regenerate, and mark it sent
- * (sending happens from their own email client).
- */
-export default function ResponseEmailPanel({
-  proposalId,
-  draft,
-  sentAt,
-  aiEnabled,
-  demoAi = false,
-}: {
+type Props = {
   proposalId: string
   draft: string | null
   sentAt: string | null
   aiEnabled: boolean
-  /** Drafts come from demo mode's scripted provider (lib/ai/demo.ts) */
-  demoAi?: boolean
+  /** Demo mode without a key: the facts for a pre-written sample, built in the browser (lib/ai/demo.ts) */
+  demo?: { input: DemoDeclineInput; org: DemoOrg } | null
+}
+
+/**
+ * The response email for a declined proposal. Auto-drafts via the AI route on
+ * first view, then lets the team edit, copy, regenerate, and mark it sent
+ * (sending happens from their own email client). In demo mode without a key
+ * the draft is a pre-written sample and nothing is saved.
+ */
+export default function ResponseEmailPanel({ demo = null, ...props }: Props) {
+  if (demo && !props.sentAt) return <DemoResponseEmailPanel draft={props.draft} demo={demo} />
+  return <LiveResponseEmailPanel {...props} />
+}
+
+function DemoResponseEmailPanel({
+  draft,
+  demo,
+}: {
+  draft: string | null
+  demo: NonNullable<Props['demo']>
 }) {
+  const { running, result, run } = useDemoRun<string>(DEMO_DELAY_MS.declineEmail)
+  const [text, setText] = useState(draft ?? '')
+  const { showToast } = useToast()
+  const autoStarted = useRef(false)
+
+  const generate = () =>
+    run(() => {
+      const email = scriptedDeclineEmail(demo.input, demo.org)
+      setText(email)
+      return email
+    })
+
+  // Like the live panel: draft automatically on first view when there's no draft
+  useEffect(() => {
+    if (autoStarted.current || draft) return
+    autoStarted.current = true
+    generate()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(text)
+    showToast('Copied to clipboard', 'success')
+  }
+
+  return (
+    <div className="card p-5">
+      <div className="mb-1 flex flex-wrap items-center gap-2">
+        <h3 className="font-medium text-gray-900">Response email</h3>
+        {result && <DemoAiBadge />}
+      </div>
+      <p className="text-sm text-gray-500 mb-3">
+        AI-drafted reply to the applicant. In a real installation you edit it, save it, copy it
+        into your email client, then mark it sent. In this demo the draft is a pre-written sample
+        and nothing is saved.
+      </p>
+
+      {running ? (
+        <p className="text-sm text-gray-500 animate-pulse mb-3">Drafting response email… (demo)</p>
+      ) : (
+        <>
+          {result && (
+            <div className="mb-3">
+              <DemoSampleNote badge={false}>{DEMO_NOTES.declineEmail}</DemoSampleNote>
+            </div>
+          )}
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={12}
+            aria-label="Response email"
+            placeholder="No draft yet — generate one or write your own."
+            className="input font-mono text-sm mb-3"
+          />
+        </>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={handleCopy}
+          disabled={running || text.trim() === ''}
+          className="btn btn-secondary"
+        >
+          Copy
+        </button>
+        <button type="button" onClick={generate} disabled={running} className="btn btn-secondary">
+          {running ? 'Drafting… (demo)' : text ? 'Regenerate' : 'Generate draft'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function LiveResponseEmailPanel({ proposalId, draft, sentAt, aiEnabled }: Omit<Props, 'demo'>) {
   const [text, setText] = useState(draft ?? '')
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -115,7 +202,6 @@ export default function ResponseEmailPanel({
     <div className="card p-5">
       <div className="mb-1 flex flex-wrap items-center gap-2">
         <h3 className="font-medium text-gray-900">Response email</h3>
-        {demoAi && <DemoAiBadge />}
       </div>
       <p className="text-sm text-gray-500 mb-3">
         AI-drafted reply to the applicant. Edit as needed, copy it into your email client, then

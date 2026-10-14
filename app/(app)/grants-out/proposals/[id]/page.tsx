@@ -16,6 +16,8 @@ import { isVotingMember, votingBodyPhrase } from '@/lib/grants/voting'
 import { getOrgSettings } from '@/lib/settings'
 import { isDeclineEmailEnabled } from '@/lib/grants/decline-email'
 import { isScriptedAi } from '@/lib/ai/demo'
+import { loadAiOrgContext } from '@/lib/ai/org-context'
+import { demoAmountDollars, toDemoOrg } from '@/lib/ai/demo-scripts'
 import PageHeader from '@/components/PageHeader'
 import StatusBadge from '@/components/StatusBadge'
 import SubmitButton from '@/components/SubmitButton'
@@ -24,7 +26,7 @@ import ContactNotes from '@/components/ContactNotes'
 import ApplicantSelect from '@/components/ApplicantSelect'
 import { formatCents, centsToDollarString } from '@/lib/utils/money'
 import { formatDate } from '@/lib/utils/dates'
-import { loadProgramAreas, programAreaLabel } from '@/lib/program-areas'
+import { loadProgramAreas, programAreaLabel, programAreaLabels } from '@/lib/program-areas'
 import MyReviewForm from './MyReviewForm'
 import DecisionForm from './DecisionForm'
 import MemoCard from './MemoCard'
@@ -59,16 +61,19 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
 export default async function ProposalPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const supabase = await createClient()
+  // Demo mode without a key: the AI panels build pre-written samples in the
+  // browser from these facts (lib/ai/demo.ts)
+  const demoAi = isScriptedAi()
 
   // Everything keyed by the proposal id loads in one wave with the proposal
   // itself; the applicant comes embedded. Only the contact picker (for an
   // unlinked applicant) and nothing else waits on the proposal row.
   const proposalP = supabase
     .from('grant_proposals')
-    .select('*, applicant:contacts!applicant_contact_id(id, display_name)')
+    .select('*, applicant:contacts!applicant_contact_id(id, display_name, kind)')
     .eq('id', id)
     .maybeSingle()
-    .then(({ data }) => data as unknown as (GrantProposal & { applicant: { id: string; display_name: string } | null }) | null)
+    .then(({ data }) => data as unknown as (GrantProposal & { applicant: { id: string; display_name: string; kind: 'person' | 'organization' } | null }) | null)
 
   const [
     proposalRow,
@@ -85,6 +90,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
     programAreas,
     { grant_review_mode: reviewMode },
     weighedInByProposal,
+    demoOrg,
   ] = await Promise.all([
     proposalP,
     supabase
@@ -121,6 +127,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
     getOrgSettings(supabase),
     // Who has weighed in (never how); only shown while votes are blind
     loadWeighedIn(supabase, [id]),
+    demoAi ? loadAiOrgContext(supabase).then(toDemoOrg) : null,
   ])
 
   if (!proposalRow) notFound()
@@ -162,6 +169,30 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
     proposal.organization_name ??
     proposal.applicant_name ??
     undefined
+
+  // Same facts the research and decline-email routes send to Claude
+  const demoResearchInput = demoOrg
+    ? {
+        applicantName: applicantDisplay ?? 'the applicant',
+        title: proposal.title,
+        summary: proposal.summary,
+        programAreaLabels: programAreaLabels(programAreas, proposal.program_areas),
+        amountDollars: demoAmountDollars(proposal.amount_requested_cents),
+        org: demoOrg,
+      }
+    : null
+  const demoDeclineInput = demoOrg
+    ? {
+        input: {
+          applicantName: applicant?.display_name ?? proposal.applicant_name ?? 'the applicant',
+          organizationName:
+            applicant?.kind === 'organization' ? applicant.display_name : proposal.organization_name,
+          title: proposal.title,
+          declinedStage: proposal.declined_stage ?? ('decision' as const),
+        },
+        org: demoOrg,
+      }
+    : null
 
   return (
     <div>
@@ -266,8 +297,8 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
               proposalId={proposal.id}
               draft={proposal.draft_response_email}
               sentAt={proposal.response_email_sent_at}
-              aiEnabled={isDeclineEmailEnabled()}
-              demoAi={isScriptedAi()}
+              aiEnabled={isDeclineEmailEnabled() || demoAi}
+              demo={demoDeclineInput}
             />
           )}
 
@@ -278,6 +309,7 @@ export default async function ProposalPage({ params }: { params: Promise<{ id: s
                 proposalId={proposal.id}
                 research={research}
                 applicantName={applicantDisplay ?? 'the applicant'}
+                demoInput={demoResearchInput}
               />
 
               <MemoCard

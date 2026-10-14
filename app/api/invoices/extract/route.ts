@@ -12,10 +12,6 @@ import {
 import { findVendorByNames, namesOf } from '@/lib/invoices/vendor-groups'
 import { checkInvoiceFile, INVOICE_UPLOAD_PREFIX } from '@/lib/invoices/formats'
 import { getOrgSettings } from '@/lib/settings'
-import { demoAiDelay, isScriptedAi } from '@/lib/ai/demo'
-import { scriptedInvoiceExtraction } from '@/lib/ai/demo-scripts'
-import { todayInTimeZone } from '@/lib/utils/dates'
-import type { ExtractedInvoice } from '@/lib/invoices/normalize'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 120
@@ -54,11 +50,9 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (!check.ok) return NextResponse.json({ error: check.reason }, { status: 400 })
   const bytes = Buffer.from(await blob.arrayBuffer())
   const duplicateOf = await findAttachedCopy(supabase, path, bytes)
-  // Demo mode without a key: a scripted reading, so no file content is needed
-  const scripted = isScriptedAi()
-  const source = scripted ? null : await sourceFor(check.kind, check.mime, bytes)
+  const source = await sourceFor(check.kind, check.mime, bytes)
 
-  if (!source && !scripted) return NextResponse.json({ enabled: true, extracted: null, duplicate_of: duplicateOf })
+  if (!source) return NextResponse.json({ enabled: true, extracted: null, duplicate_of: duplicateOf })
 
   const [{ data: categories }, vendors, settings] = await Promise.all([
     supabase
@@ -70,19 +64,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     getOrgSettings(supabase),
   ])
 
-  let extracted: ExtractedInvoice | null
-  if (scripted) {
-    // The original file name follows the upload's uuid prefix
-    const fileName = path.slice(INVOICE_UPLOAD_PREFIX.length).replace(/^[0-9a-f-]{36}-/i, '')
-    await demoAiDelay(fileName)
-    extracted = scriptedInvoiceExtraction(
-      fileName,
-      (categories ?? []).map((c) => c.name),
-      todayInTimeZone(settings.timezone)
-    )
-  } else {
-    extracted = await extractInvoiceFields(source!, categories ?? [], settings)
-  }
+  const extracted = await extractInvoiceFields(source, categories ?? [], settings)
   if (!extracted) {
     return NextResponse.json({ enabled: true, extracted: null, duplicate_of: duplicateOf })
   }
@@ -114,7 +96,6 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   return NextResponse.json({
     enabled: true,
-    demo: scripted,
     extracted: {
       ...extracted,
       vendor_contact_id: vendor?.id ?? null,

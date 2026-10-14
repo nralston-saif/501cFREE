@@ -1,14 +1,15 @@
-// The scripted AI provider for demo mode: deterministic, realistic sample
-// output for every AI feature, so a public demo works with no Anthropic key.
-// Pure functions of their input (the same input always gives the same
-// output) with no SDK, database or Next.js imports, so they are unit-tested
-// directly (demo-scripts.test.ts). lib/ai/demo.ts decides when they run;
-// each feature module calls its script in place of the Claude request.
+// Pre-written AI samples for demo mode: deterministic, realistic output for
+// every AI feature, so a public demo works with no Anthropic key. Pure
+// functions of their input (the same input always gives the same output).
+// Client-safe: only pure modules and types are imported (no SDK, database,
+// Node or Next.js code; demo-scripts.test.ts checks the import graph), because
+// the demo panels call these in the browser from data the page already has
+// (see lib/ai/demo.ts for why nothing runs on the server).
 //
 // Everything here is invented sample content: example.org sources, invented
 // vendors and people. Callers label the result with DEMO_AI_LABEL.
 
-import { MEMO_SECTION_FIELDS, type MemoSectionKey } from '@/lib/grants/memo'
+import { MEMO_HEADER_FIELDS, MEMO_SECTION_FIELDS, type MemoSectionKey } from '@/lib/grants/memo'
 import { PRI_MEMO_FIELDS, type PriMemoKey } from '@/lib/pris/memo'
 import { parseInvoiceResult, type ExtractedInvoice } from '@/lib/invoices/normalize'
 import type { DeclinedStage } from '@/lib/supabase/types/database'
@@ -16,7 +17,6 @@ import type { NoteIntakeProposal, ProposedNote } from '@/lib/note-intake-core/pr
 import { DEMO_AI_LABEL } from './demo-label'
 
 export { DEMO_AI_LABEL }
-export { DEMO_AI_MODEL } from './demo-label'
 
 /** FNV-1a: a small stable hash, so outputs vary with the input but never at random */
 export function stableHash(text: string): number {
@@ -67,6 +67,16 @@ export type DemoOrg = {
   name: string
   mission: string | null
   programAreas: { label: string }[]
+}
+
+/** Just the organization facts the scripts use (e.g. from an AiOrgContext), safe to pass to a client component */
+export function toDemoOrg(org: DemoOrg): DemoOrg {
+  return { name: org.name, mission: org.mission, programAreas: org.programAreas.map((a) => ({ label: a.label })) }
+}
+
+/** "50,000" for 5,000,000 cents; the research prompts' wording for a missing amount */
+export function demoAmountDollars(cents: number | null): string {
+  return cents != null ? (cents / 100).toLocaleString('en-US') : 'not specified'
 }
 
 function focusPhrase(org: DemoOrg): string {
@@ -292,6 +302,30 @@ export function scriptedGrantResearch(input: DemoGrantResearchInput): DemoResear
   }
 }
 
+/** A research draft laid out for reading: what the demo panels render inline */
+export type DemoResearchReport = {
+  /** Suggested header rows (grant memorandum only) */
+  header?: { label: string; value: string }[]
+  /** Every memo question, in print order, with its drafted answer */
+  sections: { label: string; answer: string }[]
+  sources: { url: string; title: string }[]
+  open_questions: string[]
+}
+
+/** The grant research sample as the demo panel shows it */
+export function grantResearchReport(input: DemoGrantResearchInput): DemoResearchReport {
+  const draft = scriptedGrantResearch(input)
+  return {
+    header: MEMO_HEADER_FIELDS.flatMap(([key, label]) => {
+      const value = (draft.header as Record<string, string | undefined>)[key]
+      return value ? [{ label, value }] : []
+    }),
+    sections: MEMO_SECTION_FIELDS.map(([key, label]) => ({ label, answer: draft.answers[key] })),
+    sources: draft.sources,
+    open_questions: draft.open_questions,
+  }
+}
+
 // ---------------------------------------------------------------------------
 // PRI research memo
 // ---------------------------------------------------------------------------
@@ -332,6 +366,16 @@ export function scriptedPriResearch(input: DemoPriResearchInput): DemoResearchDr
   if (!org.mission) openQuestions.push('Record your organization’s mission statement in Settings so research can judge mission fit.')
 
   return { answers, sources: demoSources(who), open_questions: openQuestions }
+}
+
+/** The PRI research sample as the demo panel shows it */
+export function priResearchReport(input: DemoPriResearchInput): DemoResearchReport {
+  const draft = scriptedPriResearch(input)
+  return {
+    sections: PRI_MEMO_FIELDS.map(([key, label]) => ({ label, answer: draft.answers[key] })),
+    sources: draft.sources,
+    open_questions: draft.open_questions,
+  }
 }
 
 // ---------------------------------------------------------------------------

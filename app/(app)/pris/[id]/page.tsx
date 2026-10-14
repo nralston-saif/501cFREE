@@ -18,7 +18,9 @@ import PriMemoPdfPanel from './PriMemoPdfPanel'
 import PriStatusSelect from './PriStatusSelect'
 import MarkFundedForm from './MarkFundedForm'
 import PriResearchPanel from './PriResearchPanel'
-import { isAiAvailable } from '@/lib/ai/demo'
+import { isAiAvailable, isScriptedAi } from '@/lib/ai/demo'
+import { loadAiOrgContext } from '@/lib/ai/org-context'
+import { demoAmountDollars, toDemoOrg } from '@/lib/ai/demo-scripts'
 import type { PriMemoKey } from '@/lib/pris/memo'
 import ActionForm from '@/components/ActionForm'
 
@@ -65,6 +67,7 @@ export default async function PriPage({ params }: { params: Promise<{ id: string
     { data: research },
     { data: memoPdf },
     { pri_board_approval_threshold_cents: boardThreshold },
+    demoOrg,
   ] = await Promise.all([
     supabase
       .from('contacts')
@@ -88,6 +91,8 @@ export default async function PriPage({ params }: { params: Promise<{ id: string
       .maybeSingle(),
     supabase.from('pri_memo_pdfs').select('*').eq('pri_id', id).maybeSingle(),
     getOrgSettings(supabase),
+    // Demo mode without a key: research is a pre-written sample built in the browser
+    isScriptedAi() ? loadAiOrgContext(supabase).then(toDemoOrg) : null,
   ])
 
   const memberNames = new Map((members ?? []).map((m) => [m.id, m.full_name]))
@@ -278,6 +283,17 @@ export default async function PriPage({ params }: { params: Promise<{ id: string
             priId={pri.id}
             research={research ?? null}
             recipientName={recipient?.display_name ?? 'the recipient'}
+            demoInput={
+              demoOrg
+                ? {
+                    recipientName: recipient?.display_name ?? 'the recipient',
+                    instrumentLabel: INSTRUMENT_LABELS[pri.instrument],
+                    amountDollars: demoAmountDollars(pri.amount_cents),
+                    purpose: pri.purpose,
+                    org: demoOrg,
+                  }
+                : null
+            }
           />
         )}
 

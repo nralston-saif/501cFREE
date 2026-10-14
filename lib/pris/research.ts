@@ -1,8 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { PRI_MEMO_FIELDS, type PriMemoKey } from './memo'
 import { FALLBACK_MODEL, RESEARCH_MODEL } from '@/lib/ai/models'
-import { DEMO_AI_MODEL, demoAiDelay, isAiAvailable, isScriptedAi } from '@/lib/ai/demo'
-import { scriptedPriResearch } from '@/lib/ai/demo-scripts'
+import { isAiConfigured } from '@/lib/ai/demo'
 import {
   MISSING_MISSION_QUESTION,
   organizationBlock,
@@ -42,9 +41,9 @@ export interface PriResearchDraft {
   open_questions: string[]
 }
 
-/** A key, or demo mode's scripted provider (lib/ai/demo.ts) */
+/** ANTHROPIC_API_KEY is set (demo mode's samples run in the browser, see lib/ai/demo.ts) */
 export function isPriResearchEnabled(): boolean {
-  return isAiAvailable()
+  return isAiConfigured()
 }
 
 const ANSWER_PROPERTIES = Object.fromEntries(
@@ -229,10 +228,6 @@ export interface PriResearchResult {
  */
 export async function runPriResearch(input: PriResearchInput): Promise<PriResearchResult> {
   if (!isPriResearchEnabled()) throw new Error('ANTHROPIC_API_KEY is not configured')
-  if (isScriptedAi()) {
-    await demoAiDelay(input.recipientName)
-    return { draft: scriptedPriResearch(input), model: DEMO_AI_MODEL }
-  }
   const client = new Anthropic()
 
   let model = RESEARCH_MODEL

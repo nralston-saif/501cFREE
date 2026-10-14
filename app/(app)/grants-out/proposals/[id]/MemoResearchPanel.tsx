@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/Toast'
 import { withBasePath } from '@/lib/basePath'
 import { formatDate } from '@/lib/utils/dates'
-import { DEMO_AI_MODEL } from '@/lib/ai/demo-label'
-import DemoAiBadge from '@/components/DemoAiBadge'
+import DemoResearchPanel from '@/components/DemoResearchPanel'
+import { grantResearchReport, type DemoGrantResearchInput } from '@/lib/ai/demo-scripts'
 import type { GrantResearch } from '@/lib/supabase/types/database'
 
 interface Source {
@@ -29,7 +29,34 @@ function parseOpenQuestions(raw: GrantResearch['open_questions']): string[] {
   return raw.filter((q): q is string => typeof q === 'string')
 }
 
+const DESCRIPTION =
+  "Sends a research agent to read the applicant's proposal letter and the web, then draft all ten memorandum sections plus suggested header fields, with sources. You review, edit, and approve — the AI never fills the memo directly."
+
 export default function MemoResearchPanel({
+  proposalId,
+  research,
+  applicantName,
+  demoInput = null,
+}: {
+  proposalId: string
+  research: GrantResearch | null
+  applicantName: string
+  /** Demo mode without a key: show the pre-written sample, built in the browser */
+  demoInput?: DemoGrantResearchInput | null
+}) {
+  if (demoInput) {
+    return (
+      <DemoResearchPanel
+        subjectName={applicantName}
+        description={DESCRIPTION}
+        build={() => grantResearchReport(demoInput)}
+      />
+    )
+  }
+  return <LiveMemoResearchPanel proposalId={proposalId} research={research} applicantName={applicantName} />
+}
+
+function LiveMemoResearchPanel({
   proposalId,
   research,
   applicantName,
@@ -71,7 +98,6 @@ export default function MemoResearchPanel({
       <div className="flex items-center justify-between mb-2 gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="font-medium text-gray-900">AI research</h3>
-          {research?.status === 'complete' && research.model === DEMO_AI_MODEL && <DemoAiBadge />}
         </div>
         <button
           type="button"
@@ -139,11 +165,7 @@ export default function MemoResearchPanel({
           Last run failed: {research.error ?? 'unknown error'}. Try again.
         </p>
       ) : (
-        <p className="text-sm text-gray-500">
-          Sends a research agent to read the applicant&apos;s proposal letter and the web, then
-          draft all ten memorandum sections plus suggested header fields, with sources. You
-          review, edit, and approve — the AI never fills the memo directly.
-        </p>
+        <p className="text-sm text-gray-500">{DESCRIPTION}</p>
       )}
     </div>
   )

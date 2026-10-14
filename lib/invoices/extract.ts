@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { parseInvoiceResult, type ExtractedInvoice } from './normalize'
 import { EXTRACTION_MODEL, FALLBACK_MODEL } from '@/lib/ai/models'
-import { isAiAvailable } from '@/lib/ai/demo'
+import { isAiConfigured } from '@/lib/ai/demo'
 import type { OrgSettings } from '@/lib/supabase/types/database'
 
 // A strong model: the dates and category need judgment (month-only invoices,
@@ -21,12 +21,12 @@ export type InvoiceSource =
   | { kind: 'text'; text: string }
 
 /**
- * A key, or demo mode's scripted provider (lib/ai/demo.ts). The scripted
- * path doesn't read the file; the extract route calls
- * scriptedInvoiceExtraction() in place of extractInvoiceFields().
+ * ANTHROPIC_API_KEY is set. Demo mode without a key never calls the extract
+ * route: its upload page shows sample readings made in the browser
+ * (lib/ai/demo.ts).
  */
 export function isInvoiceExtractionEnabled(): boolean {
-  return isAiAvailable()
+  return isAiConfigured()
 }
 
 const nullableString = { type: ['string', 'null'] } as const

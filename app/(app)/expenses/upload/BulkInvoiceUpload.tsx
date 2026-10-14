@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import VendorSelect from '@/components/VendorSelect'
-import DemoAiBadge from '@/components/DemoAiBadge'
 import MoneyInput from '@/components/MoneyInput'
 import { withBasePath } from '@/lib/basePath'
 import {
@@ -63,8 +62,6 @@ interface Row {
   hash: string | null
   /** An expense this exact file is already attached to (from the server). */
   duplicateOf: { expense_id: string; description: string; file_name: string } | null
-  /** Filled in by demo mode's scripted reader, not Claude */
-  demo: boolean
 }
 
 interface ExistingExpense {
@@ -214,7 +211,6 @@ export default function BulkInvoiceUpload({ categories, vendors, existingExpense
         extracted?: Extracted | null
         error?: string
         duplicate_of?: Row['duplicateOf']
-        demo?: boolean
       }
       const note = !res.ok
         ? `Couldn't read this file (${json.error ?? res.status}). Fill it in by hand.`
@@ -230,7 +226,6 @@ export default function BulkInvoiceUpload({ categories, vendors, existingExpense
         extracted: json.extracted ?? null,
         note,
         duplicateOf: json.duplicate_of ?? null,
-        demo: json.demo === true,
       })
     } catch {
       update(key, { phase: 'ready', note: "Couldn't read this file. Fill it in by hand." })
@@ -299,7 +294,6 @@ export default function BulkInvoiceUpload({ categories, vendors, existingExpense
         warning: null,
         hash,
         duplicateOf: null,
-        demo: false,
       })
     })
     if (added.length > 0) {
@@ -629,7 +623,6 @@ function UploadRow({
   const header = (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-3 border-b border-gray-100">
       <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-900">{row.file.name}</span>
-      {row.demo && <DemoAiBadge />}
       {x?.document_type === 'receipt' && (
         <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
           Receipt
