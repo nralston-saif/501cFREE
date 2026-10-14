@@ -3,6 +3,7 @@
 Notable changes to 501(c)(FREE). Each release lists any new database migrations: run them in order on an existing installation (see [docs/setup.md](docs/setup.md#upgrading)).
 
 ## Unreleased
+- AI routes are capped at 300 seconds (Vercel Hobby's limit) so the app deploys on the free plan; on a paid plan raise the research routes to 800 seconds for full-length research (see docs/setup.md).
 - The QuickBooks pull now runs daily by default, so the app deploys on Vercel's free Hobby plan (which only allows daily jobs). On a paid plan, set its schedule in `vercel.json` to `*/30 * * * *`; **Sync now** pulls immediately either way.
 - Demo mode works as a public sandbox: AI features return labelled sample output without an API key, the notes inbox works in demo, QuickBooks shows how the integration works instead of connecting, Banking has sample items to review, and demo data resets every 6 hours.
 

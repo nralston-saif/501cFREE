@@ -84,6 +84,8 @@ Email links work **only once**. If a link says it is invalid or expired (for exa
 3. In Supabase, Authentication → URL Configuration: set **Site URL** to the production address and add `<production address>/auth/callback` under **Redirect URLs**.
 4. Deploy. `vercel.json` schedules the two background jobs: daily stock prices and a daily QuickBooks pull. Vercel's free Hobby plan only allows daily jobs; on a paid plan you can make the QuickBooks pull more frequent by changing its schedule in `vercel.json` to `*/30 * * * *` (every 30 minutes). Either way, **Sync now** on the Banking page pulls immediately.
 
+   **Function time limit.** Vercel's free plan stops a server function after 300 seconds, so the AI routes are capped at 300 (`maxDuration` in `app/api/proposals/[id]/research/route.ts`, `app/api/pris/[id]/research/route.ts` and `app/api/note-intake/[id]/process/route.ts`). The grant and PRI research assistant can take 4–7 minutes, so on the free plan a long run may be cut off; it's marked failed after 15 minutes and you can run it again or draft the memo yourself. On a paid plan, raise those values to `800` for full-length research.
+
 **Other hosts:**
 1. Build and start the app:
    ```bash

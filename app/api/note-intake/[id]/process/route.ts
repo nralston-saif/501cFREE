@@ -14,7 +14,7 @@ import { scriptedNoteIntake, type DemoContact } from '@/lib/ai/demo-scripts'
 export const dynamic = 'force-dynamic'
 // Reading several files plus a few contact searches takes one to three
 // minutes; leave headroom.
-export const maxDuration = 600
+export const maxDuration = 300 // Vercel Hobby's maximum; raise to 800 on Pro (see docs/setup.md)
 
 const STALE_PROCESSING_MS = 12 * 60 * 1000
 

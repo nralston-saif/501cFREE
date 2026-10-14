@@ -13,7 +13,7 @@ import { loadAiOrgContext } from '@/lib/ai/org-context'
 export const dynamic = 'force-dynamic'
 // Web research runs minutes, not seconds (live runs have taken over five
 // minutes), so keep generous headroom over the 5-minute mark.
-export const maxDuration = 800
+export const maxDuration = 300 // Vercel Hobby's maximum; raise to 800 on Pro (see docs/setup.md)
 
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
 const STALE_RUNNING_MS = 15 * 60 * 1000
