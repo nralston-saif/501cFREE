@@ -9,7 +9,7 @@
  */
 
 export const DEMO_AUTH_USER_ID = '00000000-0000-0000-0000-00000000d390'
-export const DEMO_USER_EMAIL = 'alex@example.org'
+export const DEMO_USER_EMAIL = 'demo@example.org'
 
 type Row = Record<string, unknown>
 
@@ -192,7 +192,7 @@ The Example Literacy Fund Team`
 function buildSeedTables(): Record<string, Row[]> {
   return {
     team_members: [
-      { id: ids.alex, auth_user_id: DEMO_AUTH_USER_ID, email: DEMO_USER_EMAIL, full_name: 'Alex Rivera', is_active: true, role: 'admin', ...ts('2026-01-05') },
+      { id: ids.alex, auth_user_id: DEMO_AUTH_USER_ID, email: DEMO_USER_EMAIL, full_name: 'Demo', is_active: true, role: 'admin', ...ts('2026-01-05') },
       { id: ids.sam, auth_user_id: null, email: 'sam@example.org', full_name: 'Sam Patel', is_active: true, role: 'admin', ...ts('2026-01-05') },
       { id: ids.jordan, auth_user_id: null, email: 'jordan@example.org', full_name: 'Jordan Blake', is_active: true, role: 'admin', ...ts('2026-01-05') },
       { id: ids.casey, auth_user_id: null, email: 'casey@example.org', full_name: 'Casey Nguyen', is_active: true, role: 'staff', ...ts('2026-02-01') },
