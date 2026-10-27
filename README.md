@@ -67,6 +67,19 @@ You need [Node.js](https://nodejs.org) 20.11 or newer and [pnpm](https://pnpm.io
 
 Then open **Settings** to enter your organization's legal name, EIN, address and mission, and invite your team from **Settings → Team**. [docs/setup.md](docs/setup.md) has the details, deploying, optional integrations and troubleshooting.
 
+### Setting up with a coding agent
+
+You don't need to be a developer to install 501(c)(FREE). A coding agent such as [Claude Code](https://claude.com/claude-code) can do most of the work. The repository includes [AGENTS.md](AGENTS.md) (and `CLAUDE.md`, which loads it), so the agent starts out knowing the project's setup steps, conventions and checks.
+
+1. Install a coding agent and open it in an empty folder.
+2. Paste a prompt like this:
+
+   > Set up 501(c)(FREE) for our nonprofit from https://github.com/nralston-saif/501cFREE. Clone it, read AGENTS.md and docs/setup.md, and install the dependencies. Walk me through creating the Supabase project and running `supabase/setup.sql`. When it's time for `pnpm onboard`, tell me to run it myself. Then start the app and confirm I can sign in. After that, help me deploy to Vercel and set up any optional integrations I choose (Claude, Resend, QuickBooks). Explain each step in plain language and ask before you do anything that costs money or can't be undone.
+
+3. Do the steps the agent hands back to you: creating accounts, copying keys from the Supabase and Vercel dashboards, and running `pnpm onboard`. Running `pnpm onboard` yourself keeps your database keys and admin password out of the agent's conversation.
+
+Once you're set up, the same agent can change the app for you, for example adding a field, a report or a new letter template. Ask it to follow AGENTS.md and to run `pnpm typecheck`, `pnpm lint` and `pnpm test` before you rely on a change. Have someone check money, tax and access-control changes before you use them.
+
 ## Who can see what
 
 Only people on your team list can sign in. There are no public sign-ups. There are two roles:
